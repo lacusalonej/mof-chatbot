@@ -1,5 +1,5 @@
 /* ================================================================
-   OPDC Chatbot Admin — Shared JavaScript
+   MOF Chatbot Admin — Shared JavaScript
    ภาษา: Thai
    ================================================================ */
 

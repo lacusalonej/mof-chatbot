@@ -1,6 +1,6 @@
 /**
  * PHASE D - Stage 3: Integration Test (API Contract)
- * ทดสอบสัญญา API ของ OPDC Chatbot backend ผ่าน HTTP จริง
+ * ทดสอบสัญญา API ของ MOF Chatbot backend ผ่าน HTTP จริง
  * ไม่แก้ไข production code ใด ๆ (diagnostic mode)
  */
 
@@ -291,7 +291,7 @@ async function json(path, opts = {}) {
         });
     })();
 
-    // ---------- I20: ตรวจว่า answer ไม่มี URL นอกระบบ OPDC ----------
+    // ---------- I20: ตรวจว่า answer ไม่มี URL นอกระบบ MOF ----------
     await (async () => {
         const r = await json('/v1/chat', {
             method: 'POST',

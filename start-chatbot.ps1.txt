@@ -3,11 +3,11 @@ $ErrorActionPreference = "Stop"
 
 Write-Host ""
 Write-Host "========================================"
-Write-Host "  🤖 OPDC Chatbot - เริ่มต้นอัตโนมัติ"
+Write-Host "  🤖 MOF Chatbot - เริ่มต้นอัตโนมัติ"
 Write-Host "========================================"
 Write-Host ""
 
-$basePath = "D:\notebooklm-automation\opdc-chatbot"
+$basePath = "D:\notebooklm-automation\mof-chatbot"
 if (-not (Test-Path "$basePath\backend\server.js")) {
     Write-Host "❌ ไม่เจอ backend\server.js"
     Write-Host "กรุณาวางไฟล์ไว้ที่: $basePath"

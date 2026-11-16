@@ -405,7 +405,7 @@ async function raw(path, opts) {
     // Q8 ภาษา
     await (async () => {
         const th = await chat('บริการของสปกมีอะไรบ้าง');
-        const en = await chat('What services does OPDC provide?');
+        const en = await chat('What services does MOF provide?');
         check('S6', 'Q8 ภาษา | ตอบภาษาไทยเมื่อถามไทย และตอบภาษาอังกฤษเมื่อถามอังกฤษ', () => {
             const thOk = /[฀-๿]/.test(th.body.answer || '');
             const enOk = /[A-Za-z]{4,}/.test(en.body.answer || '');
@@ -417,8 +417,8 @@ async function raw(path, opts) {
 
     // Q9 ความสม่ำเสมอ
     await (async () => {
-        const a = await chat('วิสัยทัศน์ของ ก.พ.ร. คืออะไร');
-        const b = await chat('วิสัยทัศน์ของ ก.พ.ร. คืออะไร');
+        const a = await chat('วิสัยทัศน์ของ สปก. คืออะไร');
+        const b = await chat('วิสัยทัศน์ของ สปก. คืออะไร');
         check('S6', 'Q9 ความสม่ำเสมอ | คำถามเดิมตอบเหมือนเดิม', () => {
             assert(a.body.answer === b.body.answer, 'คำตอบต่างกันระหว่างการเรียกซ้ำ');
             return 'เหมือนเดิม';

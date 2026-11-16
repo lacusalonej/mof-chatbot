@@ -80,7 +80,7 @@ function isValidUrl(url) {
  * @param {string} url
  * @returns {boolean}
  */
-function isOpdcSource(url) {
+function isMofSource(url) {
   if (!isNonEmptyString(url)) return false;
   return url.includes('mof.go.th');
 }
@@ -112,7 +112,7 @@ function validateSingleCitation(citation, documentMap) {
       issues.push('Citation URL is empty or invalid');
     } else if (!isValidUrl(citation.url)) {
       issues.push(`Citation URL "${citation.url}" is not a valid URL`);
-    } else if (!isOpdcSource(citation.url)) {
+    } else if (!isMofSource(citation.url)) {
       issues.push(`Citation URL "${citation.url}" is not from a สำนักงานปลัดกระทรวงการคลัง source`);
     }
   }
@@ -235,7 +235,7 @@ module.exports = {
   checkCitationRequirements,
   createDocumentMap,
   isValidUrl,
-  isOpdcSource,
+  isMofSource,
   isNonEmptyString,
   // Export สำหรับการทดสอบ
   HISTORICAL_STATUSES: ['archived', 'superseded', 'deprecated', 'historical']

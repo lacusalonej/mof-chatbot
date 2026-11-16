@@ -4,7 +4,7 @@ echo.
 echo Checking files...
 if not exist "backend\server.js" (
     echo Error: backend\server.js not found
-    echo Please place this file in: D:\notebooklm-automation\opdc-chatbot\
+    echo Please place this file in: D:\notebooklm-automation\mof-chatbot\
     pause
     exit /b 1
 )

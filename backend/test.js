@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ตัวรันชุดทดสอบรวม สำหรับ OPDC Chatbot (ช่วง D)
+ * ตัวรันชุดทดสอบรวม สำหรับ MOF Chatbot (ช่วง D)
  * ---------------------------------------------------------------
  * เรียกด้วย:  npm test
  *
@@ -151,7 +151,7 @@ async function main() {
     const results = [];
 
     console.log(line());
-    console.log(' ชุดทดสอบรวม OPDC Chatbot (ช่วง D)');
+    console.log(' ชุดทดสอบรวม MOF Chatbot (ช่วง D)');
     console.log(line());
     console.log('');
 

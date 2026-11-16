@@ -712,7 +712,7 @@ curl -X POST http://localhost:8001/api/admin/v1/knowledge/chunks \
   -b "session_id=<sessionCookie>" \
   -d '{
     "title": "นโยบายการลางาน.pdf",
-    "content": "นโยบายการลางานของ ก.พ.ร. ให้ลาป่วยได้สูงสุด 30 วันต่อปี และลาพักร้อนได้ 10 วันต่อปี พนักงานสามารถลากิจได้ไม่เกิน 5 วันต่อปี"
+    "content": "นโยบายการลางานของ สปก. ให้ลาป่วยได้สูงสุด 30 วันต่อปี และลาพักร้อนได้ 10 วันต่อปี พนักงานสามารถลากิจได้ไม่เกิน 5 วันต่อปี"
   }'
 ```
 
@@ -812,7 +812,7 @@ ADMIN_USERNAME=admin ADMIN_PASSWORD=ChangeMe123! ADMIN_ROLE=admin node scripts/c
 
 ```bash
 # 1) โคลนหรืออัปโหลดโค้ดมายังเซิร์ฟเวอร์
-cd /path/to/opdc-chatbot
+cd /path/to/mof-chatbot
 
 # 2) เข้าโฟลเดอร์ backend และติดตั้ง dependencies
 cd backend
@@ -847,7 +847,7 @@ npm install -g pm2
 
 # รันเซิร์ฟเวอร์ด้วย PM2
 cd backend
-pm2 start server.js --name "opdc-chatbot-admin"
+pm2 start server.js --name "mof-chatbot-admin"
 
 # บันทึกรายการกระบวนการของ PM2
 pm2 save

@@ -58,7 +58,7 @@ node server.js
 ## โครงสร้างโปรเจกต์
 
 ```
-opdc-chatbot/
+mof-chatbot/
 ├── chat-test.html              # หน้าแชทหลัก (UI สีขาวสะอาด)
 ├── start-chatbot.bat           # สคริปต์เริ่มต้นเซิร์ฟเวอร์และเปิดเบราว์เซอร์
 ├── start-chatbot.ps1.txt       # เวอร์ชัน PowerShell (สำรอง)

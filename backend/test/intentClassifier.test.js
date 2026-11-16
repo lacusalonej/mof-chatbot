@@ -116,7 +116,7 @@ function runTests() {
     try {
         const result = classifyIntent('What is MOF?', [], 'en');
         assert.strictEqual(result, 'ORGANIZATION_INFORMATION');
-        console.log(`  ✅ English classification: "What is OPDC?" -> ${result}`);
+        console.log(`  ✅ English classification: "What is MOF?" -> ${result}`);
         passed++;
     } catch (err) {
         console.log(`  ❌ English classification: ${err.message}`);

@@ -12,7 +12,7 @@ const {
     validateSingleCitation,
     checkCitationRequirements,
     isValidUrl,
-    isOpdcSource,
+    isMofSource,
     createDocumentMap
 } = require('../citationValidator');
 
@@ -81,11 +81,11 @@ function runTests() {
         const valid = isValidUrl('https://km.mof.go.th/test');
         assert.strictEqual(valid, true, 'URL ของ สปก. ควรเป็น valid');
 
-        const isOpdc = isOpdcSource('https://km.mof.go.th/test');
-        assert.strictEqual(isOpdc, true, 'ควรระบุเป็นแหล่ง สปก.');
+        const isMof = isMofSource('https://km.mof.go.th/test');
+        assert.strictEqual(isMof, true, 'ควรระบุเป็นแหล่ง สปก.');
 
-        const isNotOpdc = isOpdcSource('https://www.google.com');
-        assert.strictEqual(isNotOpdc, false, 'ไม่ควรระบุ Google เป็นแหล่ง สปก.');
+        const isNotMof = isMofSource('https://www.google.com');
+        assert.strictEqual(isNotMof, false, 'ไม่ควรระบุ Google เป็นแหล่ง สปก.');
         console.log(`  ✅ URL validation ทำงานได้`);
         passed++;
     } catch (err) {

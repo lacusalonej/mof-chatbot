@@ -1,6 +1,6 @@
 @echo off
 title MOF Chatbot Backend
-cd /d D:\notebooklm-automation\opdc-chatbot\backend
+cd /d D:\notebooklm-automation\mof-chatbot\backend
 set ADMIN_SESSION_SECRET=xK9mP2vR5wQ8nB1tY4uE7sD3fG6hJ8kL
 set PORT=8001
 set NODE_ENV=development

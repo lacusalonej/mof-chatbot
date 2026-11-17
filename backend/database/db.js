@@ -1,48 +1,29 @@
 'use strict';
 
 const path = require('path');
-const Database = require('sqlite3').Database;
+const Database = require('better-sqlite3');
 
 const DB_PATH = process.env.ADMIN_DB_PATH || path.join(__dirname, 'admin.db');
 
-const db = new Database(DB_PATH, (err) => {
-    if (err) {
-        console.error('[AdminDB] Failed to open database:', err.message);
-        process.exit(1);
-    }
-});
+const db = new Database(DB_PATH);
 
 function run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) return reject(err);
-            resolve({ id: this.lastID, changes: this.changes });
-        });
-    });
+    const result = db.prepare(sql).run(params);
+    return { id: result.lastInsertRowid, changes: result.changes };
 }
 
 function get(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.get(sql, params, (err, row) => {
-            if (err) return reject(err);
-            resolve(row);
-        });
-    });
+    return db.prepare(sql).get(params);
 }
 
 function all(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) return reject(err);
-            resolve(rows || []);
-        });
-    });
+    return db.prepare(sql).all(params);
 }
 
 async function initialize() {
-    await run("PRAGMA journal_mode = WAL");
+    run("PRAGMA journal_mode = WAL");
 
-    await run(`CREATE TABLE IF NOT EXISTS users (
+    run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
@@ -53,9 +34,9 @@ async function initialize() {
         updated_at TEXT NOT NULL,
         last_login_at TEXT
     )`);
-    try { await run("ALTER TABLE users ADD COLUMN google_id TEXT UNIQUE"); } catch (e) { /* column already exists */ }
+    try { run("ALTER TABLE users ADD COLUMN google_id TEXT UNIQUE"); } catch (e) { /* column already exists */ }
 
-    await run(`CREATE TABLE IF NOT EXISTS sessions (
+    run(`CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL,
         expires_at TEXT NOT NULL,
@@ -63,7 +44,7 @@ async function initialize() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`);
 
-    await run(`CREATE TABLE IF NOT EXISTS audit_logs (
+    run(`CREATE TABLE IF NOT EXISTS audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         action TEXT NOT NULL,
@@ -76,7 +57,7 @@ async function initialize() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     )`);
 
-    await run(`CREATE TABLE IF NOT EXISTS system_config (
+    run(`CREATE TABLE IF NOT EXISTS system_config (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL,
         description TEXT,
@@ -85,7 +66,7 @@ async function initialize() {
         FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
     )`);
 
-    await run(`CREATE TABLE IF NOT EXISTS conversations (
+    run(`CREATE TABLE IF NOT EXISTS conversations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT NOT NULL,
         user_message TEXT NOT NULL,
@@ -95,17 +76,15 @@ async function initialize() {
         created_at TEXT NOT NULL
     )`);
 
-    await run("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)");
-    await run("CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)");
-    await run("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at)");
-    await run("CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id)");
-    await run("CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at)");
+    run("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)");
+    run("CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)");
+    run("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at)");
+    run("CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id)");
+    run("CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at)");
 }
 
 function close() {
-    return new Promise((resolve, reject) => {
-        db.close((err) => (err ? reject(err) : resolve()));
-    });
+    db.close();
 }
 
 module.exports = { db, run, get, all, initialize, close };

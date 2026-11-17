@@ -87,7 +87,10 @@ app.use(session({
     },
 }));
 
-// Root route -> คืนข้อมูลบริการเป็น JSON (ต้องวางก่อน static middleware)
+// เสิร์ฟ static files (หน้าแชทและหน้าแอดมิน) จากโฟลเดอร์ parent
+app.use(express.static(path.join(__dirname, '..')));
+
+// Root route -> คืนข้อมูลบริการเป็น JSON
 app.get('/', (req, res) => {
     res.json({
         name: 'MOF Chatbot Backend',
@@ -98,13 +101,10 @@ app.get('/', (req, res) => {
     });
 });
 
-// ปิดเส้นทางภายในก่อน static middleware เพื่อไม่ให้ static จับก่อน
+// ปิดเส้นทางภายในเพื่อไม่ให้ static จับก่อน
 app.get('/admin', (_, res) => {
     res.status(403).json({ error: 'Forbidden: admin access required' });
 });
-
-// เสิร์ฟ static files (หน้าแชทและหน้าแอดมิน) จากโฟลเดอร์ parent
-app.use(express.static(path.join(__dirname, '..')));
 
 // ตั้งค่า RAG engine
 const engine = new RAGEngine();

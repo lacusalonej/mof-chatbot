@@ -9,7 +9,7 @@
   'use strict';
 
   var defaultConfig = {
-    endpoint: 'http://localhost:8001',
+    endpoint: '',
     position: 'bottom-right', // bottom-right | bottom-left
     primaryColor: '#0f62fe',
     title: 'MOF Chatbot',

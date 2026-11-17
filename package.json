@@ -1,0 +1,22 @@
+{
+  "name": "mof-chatbot",
+  "version": "1.0.0",
+  "description": "MOF Chatbot — Rule-based chatbot for สำนักงานปลัดกระทรวงการคลัง (สปก.)",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js",
+    "test": "cd backend && node test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "chatbot",
+    "mof",
+    "สปก.",
+    "rule-based",
+    "pdpa"
+  ],
+  "license": "MIT"
+}

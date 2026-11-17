@@ -36,11 +36,9 @@ const PORT = process.env.PORT || 8001;
 app.disable('x-powered-by');
 
 // ตรวจสอบ secret สำหรับเข้ารหัสเซสชัน (ห้ามใช้ค่า default ที่ hardcode ไว้ใน production)
-const sessionSecret = process.env.ADMIN_SESSION_SECRET
-    || (process.env.NODE_ENV === 'production' ? undefined : crypto.randomBytes(32).toString('hex'));
-if (!sessionSecret) {
-    console.error('[FATAL] ADMIN_SESSION_SECRET ต้องถูกตั้งค่าในตัวแปรสภาพแวดล้อมเมื่อรันใน production');
-    process.exit(1);
+const sessionSecret = process.env.ADMIN_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+if (!process.env.ADMIN_SESSION_SECRET && process.env.NODE_ENV === 'production') {
+    console.warn('[WARN] ADMIN_SESSION_SECRET ไม่ถูกตั้งค่า ใช้ค่าสุ่มชั่วคราว (เซสชันจะรีเซ็ตเมื่อเซิร์ฟเวอร์รีสตาร์ท)');
 }
 
 // ระบบเก็บ session: ใช้ Redis ใน production (เมื่อมี REDIS_URL) / MemoryStore ใน development
@@ -54,8 +52,9 @@ if (process.env.REDIS_URL) {
 }
 
 // Middleware
-app.use(cors({
-    origin: [
+const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+    : [
         'https://km.mof.go.th',
         'https://www.mof.go.th',
         'https://mof.go.th',
@@ -65,7 +64,10 @@ app.use(cors({
         'http://127.0.0.1:5500',
         'http://127.0.0.1:8000',
         'http://127.0.0.1:8001'
-    ],
+    ];
+
+app.use(cors({
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-Admin-Key', 'X-CSRF-Token'],
     credentials: true,

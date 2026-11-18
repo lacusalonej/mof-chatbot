@@ -75,14 +75,15 @@ function isValidUrl(url) {
 }
 
 /**
- * ตรวจสอบว่า URL เป็นของ สำนักงานปลัดกระทรวงการคลัง ที่เชื่อถือได้หรือไม่
+ * ตรวจสอบว่า URL เป็นของสำนักงานปลัดกระทรวงการคลัง หรือกลุ่มพัฒนาระบบบริหาร ที่เชื่อถือได้หรือไม่
  *
  * @param {string} url
  * @returns {boolean}
  */
 function isMofSource(url) {
   if (!isNonEmptyString(url)) return false;
-  return url.includes('mof.go.th');
+  const trustedDomains = ['mof.go.th', 'psdg.mof.go.th', 'opsplan.mof.go.th', 'catalog.mof.go.th', 'km.mof.go.th'];
+  return trustedDomains.some(domain => url.includes(domain));
 }
 
 /**

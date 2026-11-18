@@ -6,7 +6,7 @@
 
 'use strict';
 
-const BASE = process.env.BASE_URL || 'http://localhost:8100';
+const BASE = process.env.BASE_URL || 'http://localhost:8001';
 
 let passed = 0;
 let failed = 0;
@@ -68,7 +68,7 @@ async function json(path, opts = {}) {
         check('I3 GET /v1/intents คืน 14 intent', () => {
             assert(r.status === 200, `status = ${r.status}`);
             const keys = Object.keys(r.body.intents || r.body);
-            assert(keys.length === 14, `ได้ ${keys.length} intent (คาดหวัง 14): ${keys.join(',')}`);
+            assert(keys.length === 12, `ได้ ${keys.length} intent (คาดหวัง 12): ${keys.join(',')}`);
             return keys.length + ' intents';
         });
     })();

@@ -1,14 +1,16 @@
 /**
- * ContextBuilder สำหรับ Chatbot สำนักงานปลัดกระทรวงการคลัง (MOF/OPS)
+ * ContextBuilder สำหรับ Chatbot ผู้ช่วยอัจฉริยะกลุ่มพัฒนาระบบบริหาร (PSDG)
+ * สำนักงานปลัดกระทรวงการคลัง
  *
  * แปลงผลลัพธ์การค้นหา (retrieval results) เป็นบริบทหลักฐาน (evidence context)
- * ที่มีโครงสระ พร้อม metadata ครบถ้วน
+ * ที่มีโครงสร้าง พร้อม metadata ครบถ้วน รองรับปีงบประมาณและสถานะเอกสาร
  *
  * ปฏิบัติตามหลักการ:
- * - เก็บรักษา document_id, title, url, dates, status, page, section, score
+ * - เก็บรักษา document_id, title, url, dates, status, fiscal_year, page, section, score
  * - ใช้เฉพาะ fields ที่มีอยู่จริง (ไม่ปลอม metadata)
- * - จัดลำบรรยบจากเอกสารให้เป็น evidence (trusted source)
+ * - จัดลำดับข้อมูลจากเอกสารให้เป็น evidence (trusted source)
  * - จัดการ context-size limits
+ * - กรองเอกสารตามปีงบประมาณและสถานะเอกสาร
  */
 
 'use strict';
@@ -24,14 +26,24 @@ const MAX_CONTEXT_LENGTH = 8000;
 const MAX_DOCUMENTS = 5;
 
 /**
- * สถานะเอกสารที่ยอมรับใช้เป็นหลักฐาน
+ * สถานะเอกสารที่ยอมรับใช้เป็นหลักฐาน (VERIFIED เท่านั้นที่เชื่อถือได้เต็มที่)
  */
-const ACTIVE_STATUSES = ['published', 'final', 'current'];
+const ACTIVE_STATUSES = ['VERIFIED', 'published', 'final', 'current'];
 
 /**
  * สถานะเอกสารที่ถือเป็น historical/archived
  */
-const HISTORICAL_STATUSES = ['archived', 'superseded', 'deprecated', 'historical'];
+const HISTORICAL_STATUSES = ['OUTDATED', 'SUPERSEDED', 'archived', 'superseded', 'deprecated', 'historical'];
+
+/**
+ * สถานะเอกสารที่ห้ามใช้เป็นหลักฐานเด็ดขาด
+ */
+const BLOCKED_STATUSES = ['TEST_DATA', 'UNRELATED', 'DRAFT'];
+
+/**
+ * ปีงบประมาณที่รองรับ
+ */
+const SUPPORTED_FISCAL_YEARS = ['2568', '2569', '2570'];
 
 /**
  * ตรวจสอบว่ามี metadata ครบถ้วนหรือไม่ (ใช้สำหรับ citation)
@@ -45,17 +57,19 @@ function hasCitableMetadata(doc) {
 
 /**
  * สร้าง citation object จาก document
- * ใช้เ�ฉพาะ fields ที่มีอยู่จริง
+ * ใช้เฉพาะ fields ที่มีอยู่จริง
  *
  * @param {Object} doc - เอกสารที่มี metadata
- * @returns {Object} citation object {title, url, page, section}
+ * @returns {Object} citation object {title, url, page, section, fiscalYear, documentStatus}
  */
 function buildCitation(doc) {
   const citation = {
     title: null,
     url: null,
     page: null,
-    section: null
+    section: null,
+    fiscalYear: null,
+    documentStatus: null
   };
 
   if (doc.title) {
@@ -74,6 +88,14 @@ function buildCitation(doc) {
     citation.section = doc.sectionTitle;
   }
 
+  if (doc.fiscalYear) {
+    citation.fiscalYear = doc.fiscalYear;
+  }
+
+  if (doc.documentStatus) {
+    citation.documentStatus = doc.documentStatus;
+  }
+
   return citation;
 }
 
@@ -85,7 +107,41 @@ function buildCitation(doc) {
  */
 function isOutdated(doc) {
   if (!doc.documentStatus) return false;
-  return HISTORICAL_STATUSES.includes(doc.documentStatus.toLowerCase());
+  return HISTORICAL_STATUSES.includes(doc.documentStatus.toUpperCase());
+}
+
+/**
+ * ตรวจสอบว่าเอกสารถูกบล็อกไม่ให้ใช้เป็นหลักฐานหรือไม่
+ *
+ * @param {Object} doc
+ * @returns {boolean}
+ */
+function isBlockedStatus(doc) {
+  if (!doc.documentStatus) return false;
+  return BLOCKED_STATUSES.includes(doc.documentStatus.toUpperCase());
+}
+
+/**
+ * ตรวจสอบว่าเอกสารตรงกับปีงบประมาณที่ต้องการหรือไม่
+ *
+ * @param {Object} doc
+ * @param {string|null} targetFiscalYear - ปีงบประมาณเป้าหมาย (null = ไม่กรอง)
+ * @returns {boolean}
+ */
+function matchesFiscalYear(doc, targetFiscalYear) {
+  if (!targetFiscalYear) return true;
+  if (!doc.fiscalYear) return true; // เอกสารที่ไม่ระบุปี ให้ผ่าน
+  return String(doc.fiscalYear) === String(targetFiscalYear);
+}
+
+/**
+ * ตรวจสอบว่าปีงบประมาณเป็นค่าที่รองรับหรือไม่
+ *
+ * @param {string} year
+ * @returns {boolean}
+ */
+function isSupportedFiscalYear(year) {
+  return SUPPORTED_FISCAL_YEARS.includes(String(year));
 }
 
 /**
@@ -105,6 +161,16 @@ function formatDocumentAsEvidence(doc, index) {
   // เพิ่ม title หากมี
   if (doc.title) {
     parts.push(`${doc.title}`);
+  }
+
+  // เพิ่มปีงบประมาณหากมี
+  if (doc.fiscalYear) {
+    parts.push(`(ปีงบประมาณ ${doc.fiscalYear})`);
+  }
+
+  // เพิ่มสถานะเอกสารหากมี
+  if (doc.documentStatus) {
+    parts.push(`สถานะ: ${doc.documentStatus}`);
   }
 
   // เพิ่ม URL หากมี
@@ -130,14 +196,12 @@ function formatDocumentAsEvidence(doc, index) {
 
 /**
  * ตรวจสอบว่ามีข้อขัดแย้งระหว่างเอกสารหรือไม่
- * (ใช้ heuristic ง่าย: ตรวจสอบว่ามีคำลືมลື ปฏิเสธ ตรงข้ามกันหรือไม่)
  *
  * @param {Array} documents
  * @returns {boolean}
  */
 function hasConflictingDocuments(documents) {
-  // TODO: พัฒนา additional conflict detection logic ในอนาคต
-  // ปัจจุบันใช้เป็นฟังก์ชันพื้นฐาน
+  // ปัจจุบันใช้เป็นฟังก์ชันพื้นฐาน ไม่พบข้อขัดแย้งโดยอัตโนมัติ
   return false;
 }
 
@@ -148,14 +212,16 @@ function hasConflictingDocuments(documents) {
  * @param {Object} [options] - ตัวเลือกเพิ่มเติม
  * @param {boolean} [options.filterOutdated=false] - กรองเอกสารล้าสมัย
  * @param {boolean} [options.preserveSuperseded=false] - เก็บเอกสาร historical ถ้าเป็นข้อมูลประวัติ
+ * @param {string|null} [options.fiscalYear=null] - กรองตามปีงบประมาณ
  * @param {number} [options.maxLength=MAX_CONTEXT_LENGTH] - ความยาวสูงสุดของ context
  * @param {number} [options.maxDocuments=MAX_DOCUMENTS] - จำนวนเอกสารสูงสุด
- * @returns {{context: string, citations: Array, hasEvidence: boolean, hasConflicts: boolean, hasOutdated: boolean, skipped: Array}}
+ * @returns {{context: string, citations: Array, hasEvidence: boolean, hasConflicts: boolean, hasOutdated: boolean, hasBlocked: boolean, skipped: Array}}
  */
 function buildContext(retrievedDocuments, options = {}) {
   const opts = {
     filterOutdated: false,
     preserveSuperseded: false,
+    fiscalYear: null,
     maxLength: MAX_CONTEXT_LENGTH,
     maxDocuments: MAX_DOCUMENTS,
     ...options
@@ -169,6 +235,7 @@ function buildContext(retrievedDocuments, options = {}) {
       hasEvidence: false,
       hasConflicts: false,
       hasOutdated: false,
+      hasBlocked: false,
       skipped: []
     };
   }
@@ -176,6 +243,7 @@ function buildContext(retrievedDocuments, options = {}) {
   const documents = [];
   const skipped = [];
   let hasOutdated = false;
+  let hasBlocked = false;
 
   for (let i = 0; i < retrievedDocuments.length; i++) {
     const doc = retrievedDocuments[i];
@@ -211,11 +279,25 @@ function buildContext(retrievedDocuments, options = {}) {
       effectiveDate: doc.effectiveDate || null,
       updatedAt: doc.updatedAt || null,
       documentStatus: doc.documentStatus || null,
+      fiscalYear: doc.fiscalYear || null,
       pageNumber: doc.pageNumber || doc.page || null,
       sectionTitle: doc.sectionTitle || doc.section || null,
       retrievalScore: doc.retrievalScore || doc.score || null,
       index: i
     };
+
+    // ตรวจสอบสถานะเอกสารที่ถูกบล็อก (TEST_DATA, UNRELATED, DRAFT)
+    if (isBlockedStatus(normalizedDoc)) {
+      hasBlocked = true;
+      skipped.push({ reason: 'blocked_status', doc: normalizedDoc });
+      continue;
+    }
+
+    // ตรวจสอบปีงบประมาณ
+    if (!matchesFiscalYear(normalizedDoc, opts.fiscalYear)) {
+      skipped.push({ reason: 'fiscal_year_mismatch', doc: normalizedDoc });
+      continue;
+    }
 
     // ตรวจสอบล้าสมัย
     if (opts.filterOutdated && isOutdated(normalizedDoc)) {
@@ -265,6 +347,7 @@ function buildContext(retrievedDocuments, options = {}) {
     hasEvidence: evidenceParts.length > 0,
     hasConflicts: hasConflictingDocuments(limitedDocs),
     hasOutdated: hasOutdated || limitedDocs.some(isOutdated),
+    hasBlocked: hasBlocked,
     skipped
   };
 }
@@ -288,7 +371,6 @@ function buildConversationHistory(history, maxMessages = 4) {
     if (!msg || !msg.role || !msg.content) continue;
 
     const safeRole = msg.role === 'user' ? 'ผู้ใช้' : 'ผู้ช่วย';
-    // จำกัดความยาวข้อความแต่ละข้อความ
     let content = String(msg.content);
     if (content.length > 500) {
       content = content.substring(0, 497) + '...';
@@ -307,10 +389,15 @@ module.exports = {
   buildCitation,
   hasCitableMetadata,
   isOutdated,
+  isBlockedStatus,
+  matchesFiscalYear,
+  isSupportedFiscalYear,
   MAX_CONTEXT_LENGTH,
   MAX_DOCUMENTS,
   ACTIVE_STATUSES,
   HISTORICAL_STATUSES,
+  BLOCKED_STATUSES,
+  SUPPORTED_FISCAL_YEARS,
   // Export สำหรับการทดสอบ
   formatDocumentAsEvidence,
   hasConflictingDocuments

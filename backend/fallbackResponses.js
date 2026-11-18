@@ -1,5 +1,6 @@
 /**
- * FallbackResponses สำหรับ Chatbot สำนักงานปลัดกระทรวงการคลัง (MOF/OPS)
+ * FallbackResponses สำหรับ Chatbot ผู้ช่วยอัจฉริยะกลุ่มพัฒนาระบบบริหาร (PSDG)
+ * สำนักงานปลัดกระทรวงการคลัง
  * ให้ข้อความตอบแทนบนภาษาไทยและอังกฤษ
  * สำหรับสถานการณ์: ไม่มีหลักฐาน, หลักฐานไม่เพียงพอ, ข้อมูลขัดแย้ง,
  * เอกสารล้าสมัย, การค้นหาล้มเหลว, ผู้ให้บริการล้มเหลว, ผลลัพธ์ไม่ถูกต้อง
@@ -18,12 +19,13 @@
  * ข้อความ fallback ภาษาไทย
  */
 const thaiResponses = {
-  NO_EVIDENCE: `ขออภัยครับ ไม่พบข้อมูลที่เกี่ยวข้องกับคำถามนี้ในระบบของเรา
+  NO_EVIDENCE: `ขออภัยครับ ไม่พบข้อมูลที่เกี่ยวข้องกับคำถามนี้ในฐานความรู้ของกลุ่มพัฒนาระบบบริหาร
 
-คุณสามารถติดต่อสอบถามเจ้าหน้าที่สำนักงานปลัดกระทรวงการคลัง ได้โดยตรงที่:
+คุณสามารถติดต่อสอบถามเจ้าหน้าที่กลุ่มพัฒนาระบบบริหาร ได้โดยตรงที่:
 📞 โทร: 02-126-5800, 02-273-9408
 📧 อีเมล: saraban@mof.go.th
-🌐 เว็บไซต์: https://km.mof.go.th/`,
+🌐 เว็บไซต์: https://psdg.mof.go.th/
+📚 คลังความรู้: https://km.mof.go.th/`,
 
   INSUFFICIENT_EVIDENCE: `ขออภัยครับ ข้อมูลที่มีอยู่ไม่เพียงพอที่จะตอบคำถามนี้อย่างชัดเจน
 
@@ -42,11 +44,11 @@ const thaiResponses = {
 
   OUTDATED_INFO: `ขออภัยครับ ข้อมูลที่เรามีอาจไม่เป็นปัจจุบันหรือมีการอัปเดตแล้ว
 
-เราขอแนะนำให้ตรวจสอบข้อมูลล่าสุดจากแหล่งที่เป็นทางการ:`,
+เราขอแนะนำให้ตรวจสอบข้อมูลล่าสุดจากแหล่งที่เป็นทางการ: https://psdg.mof.go.th/`,
 
   RETRIEVAL_ERROR: `ขออภัยครับ เกิดข้อผิดพลาดขณะค้นหาข้อมูลในขณะนี้ กรุณาลองใหม่อีกครั้งในภายหลัง
 
-หากปัญหาpersist ให้ติดต่อสอบถามเจ้าหน้าที่สำนักงานปลัดกระทรวงการคลัง ได้ที่:
+หากปัญหาเกิดขึ้นต่อเนื่อง ให้ติดต่อสอบถามเจ้าหน้าที่กลุ่มพัฒนาระบบบริหาร ได้ที่:
 📞 โทร: 02-126-5800, 02-273-9408
 📧 อีเมล: saraban@mof.go.th`,
 
@@ -54,30 +56,35 @@ const thaiResponses = {
 
   INVALID_OUTPUT: `ขออภัยครับ เกิดข้อผิดพลาดข้อมูลในการประมวลผลคำตอบ กรุณาลองใหม่อีกครั้ง`,
 
-  OUT_OF_SCOPE: `สวัสดีครับ! ผมคือ Chatbot ผู้ช่วยของ สำนักงานปลัดกระทรวงการคลัง (สปก.)
+  OUT_OF_SCOPE: `สวัสดีครับ! ผมคือ PSDG Smart Assistant ผู้ช่วยข้อมูลด้านการพัฒนาระบบราชการของกลุ่มพัฒนาระบบบริหาร สำนักงานปลัดกระทรวงการคลัง
 
 ฉันสามารถช่วยตอบคำถามเกี่ยวกับ:
-• ข้อมูลทั่วไปของ สปก. และองค์กร
-• วิสัยทัศน์ ภารกิจ และยุทธศาสตร์
-• บริการและขั้นตอนต่างๆ
-• เอกสารและคู่มือ
-• กฎหมายและระเบียบ
-• ดิจิทัลการปกครอง
-• ช่องทางการติดต่อ
+• ภารกิจและอำนาจหน้าที่ของกลุ่มพัฒนาระบบบริหาร
+• PMQA และ PMQA 4.0
+• KPI และตัวชี้วัดความสำเร็จ
+• การประเมินผลการปฏิบัติงาน
+• การพัฒนาระบบราชการและยุทธศาสตร์
+• การปรับปรุงกระบวนงานและคู่มือปฏิบัติงาน
+• การบริหารความเสี่ยงและ Risk Matrix
+• ระบบควบคุมภายใน
+• การจัดการความรู้ (KM) และ Knowledge Bank
+• การสำรวจความพึงพอใจของผู้รับบริการ
+• เอกสาร คู่มือ และรายงานราชการ
 
-คุณมีคำถามอะไรเกี่ยวกับ สปก. ไหมครับ?`
+คุณมีคำถามอะไรเกี่ยวกับกลุ่มพัฒนาระบบบริหารไหมครับ?`,
 };
 
 /**
  * ข้อความ fallback ภาษาอังกฤษ
  */
 const englishResponses = {
-  NO_EVIDENCE: `I'm sorry, but I couldn't find any relevant information to answer your question in our system.
+  NO_EVIDENCE: `I'm sorry, but I couldn't find any relevant information to answer your question in the PSDG knowledge base.
 
-You can contact the MOF/OPS staff directly:
+You can contact the System Development Group staff directly:
 📞 Phone: 02-126-5800, 02-273-9408
 📧 Email: saraban@mof.go.th
-🌐 Website: https://km.mof.go.th/`,
+🌐 Website: https://psdg.mof.go.th/
+📚 Knowledge Center: https://km.mof.go.th/`,
 
   INSUFFICIENT_EVIDENCE: `I'm sorry, but the available information is insufficient to answer your question clearly.
 
@@ -96,11 +103,11 @@ We recommend contacting the relevant officials for the most accurate and up-to-d
 
   OUTDATED_INFO: `I'm sorry, but the information we have may not be up-to-date.
 
-We recommend verifying the latest information from official sources:`,
+We recommend verifying the latest information from official sources: https://psdg.mof.go.th/`,
 
   RETRIEVAL_ERROR: `I'm sorry, but we encountered an error while searching for information. Please try again later.
 
-If the problem persists, you can contact MOF/OPS staff:
+If the problem persists, you can contact the System Development Group:
 📞 Phone: 02-126-5800, 02-273-9408
 📧 Email: saraban@mof.go.th`,
 
@@ -108,16 +115,20 @@ If the problem persists, you can contact MOF/OPS staff:
 
   INVALID_OUTPUT: `I'm sorry, but we encountered an error while generating the answer. Please try again later.`,
 
-  OUT_OF_SCOPE: `Hello! I'm the MOF/OPS chatbot assistant.
+  OUT_OF_SCOPE: `Hello! I'm PSDG Smart Assistant, an information assistant for public administration development of the System Development Group (PSDG), Office of the Permanent Secretary, Ministry of Finance, Thailand.
 
 I can help you with questions about:
-• MOF/OPS organization information and structure
-• Vision, mission, and strategic issues
-• Public services and procedures
-• Official manuals and documents
-• Laws and regulations
-• Digital government initiatives
-• Contact information
+• PSDG mission and authorities
+• PMQA and PMQA 4.0
+• KPI and performance indicators
+• Performance evaluation
+• Public administration development and strategy
+• Process improvement and work manuals
+• Risk management and risk matrix
+• Internal control systems
+• Knowledge management (KM) and Knowledge Bank
+• Service satisfaction surveys
+• Official documents, manuals, and reports
 
 How can I help you today?`
 };
@@ -165,7 +176,7 @@ function simpleTemplate(template, data) {
  *
  * @param {FallbackReason} reason - เหตุผลสำหรับ fallback
  * @param {'th'|'en'} language - ภาษา (th หรือ en)
- * @param {Object} [data] - ข้อมูลเพิ่มเติมสำหรับ template (เชชั่น sources)
+ * @param {Object} [data] - ข้อมูลเพิ่มเติมสำหรับ template (เช่น sources)
  * @returns {string} ข้อความ fallback ในภาษาที่ระบุ
  */
 function getFallback(reason, language = 'th', data) {

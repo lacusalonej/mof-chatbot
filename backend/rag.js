@@ -1,18 +1,37 @@
 /**
- * RAG Engine สำหรับ Chatbot สำนักงานปลัดกระทรวงการคลัง (MOF/OPS)
+ * RAG Engine สำหรับ Chatbot ผู้ช่วยอัจฉริยะกลุ่มพัฒนาระบบบริหาร (PSDG)
+ * สำนักงานปลัดกระทรวงการคลัง
  * รองรับภาษาไทย: ตัดคำพื้นฐาน + จับ substring + จับ intent
  *
- * ข้อมูลดึงมาจาก https://km.mof.go.th/ (สำนักงานปลัดกระทรวงการคลัง)
+ * ข้อมูลดึงมาจาก knowledge/mof-knowledge.json (ฐานความรู้ PSDG)
  *
- * แก้ไข: เพิ่ม metadata (title, sourceUrl, publisher, documentStatus) ให้ chunks
- * เพื่อรองรับ citation validation และตอบสนองตามข้อกำหนดของ Prompt Engine
+ * แก้ไข: เพิ่ม metadata (title, sourceUrl, publisher, documentStatus, fiscal_year)
+ * ให้ chunks เพื่อรองรับ citation validation และตอบสนองตามข้อกำหนดของ Prompt Engine
  *
- * หมายเหตุ: การเปลี่ยนแปลงนี้เป็นการเพิ่ม metadata เท่านั้น — ไม่เปลี่ยน API หรือพฤติกรรม
+ * หมายเหตุ: การเปลี่ยนแปลงนี้เป็นการปรับข้อมูลและ metadata เท่านั้น — ไม่เปลี่ยน API หรือพฤติกรรมหลัก
  */
 const fs = require('fs');
 const path = require('path');
 
 const KNOWLEDGE_FILE = path.join(__dirname, '..', 'knowledge', 'mof-knowledge.json');
+
+// คำพ้องและคำย่อที่ใช้จริงในหน่วยงาน
+const SYNONYMS = {
+  'กพร.': ['PSDG', 'System Development Group', 'กลุ่มพัฒนาระบบบริหาร'],
+  'psdg': ['กพร.', 'System Development Group', 'กลุ่มพัฒนาระบบบริหาร'],
+  'pmuq': ['PMQA', 'PMQA 4.0', 'การประเมินคุณภาพภาครัฐ'],
+  'pmqa': ['PMQA 4.0', 'การประเมินคุณภาพภาครัฐ'],
+  'kpi': ['ตัวชี้วัด', 'Key Performance Indicator'],
+  'ตัวชี้วัด': ['KPI', 'Key Performance Indicator'],
+  'km': ['การจัดการความรู้', 'Knowledge Management'],
+  'การจัดการความรู้': ['KM', 'Knowledge Management'],
+  'sop': ['คู่มือปฏิบัติงาน', 'Standard Operating Procedure'],
+  'คู่มือปฏิบัติงาน': ['SOP', 'Standard Operating Procedure'],
+  'e-sar': ['การรายงานผลการปฏิบัติราชการ', 'ระบบรายงานผลการปฏิบัติราชการ'],
+  'การรายงานผลการปฏิบัติราชการ': ['e-SAR', 'ระบบรายงานผลการปฏิบัติราชการ'],
+  'ความเสี่ยง': ['Risk Management', 'การบริหารความเสี่ยง'],
+  'ควบคุมภายใน': ['Internal Control', 'ระบบควบคุมภายใน']
+};
 
 class RAGEngine {
     constructor(knowledgeFile) {
@@ -26,128 +45,241 @@ class RAGEngine {
         return JSON.parse(raw);
     }
 
+    _normalizeText(text) {
+        if (!text) return '';
+        return String(text).toLowerCase().trim();
+    }
+
+    _expandWithSynonyms(text) {
+        const normalized = this._normalizeText(text);
+        let expanded = normalized;
+        for (const [key, values] of Object.entries(SYNONYMS)) {
+            const keyLower = key.toLowerCase();
+            if (normalized.includes(keyLower)) {
+                for (const val of values) {
+                    expanded += ' ' + val.toLowerCase();
+                }
+            }
+        }
+        return expanded;
+    }
+
     _createChunks() {
         const chunks = [];
-        const org = this.data.organization;
-        const baseUrl = 'https://km.mof.go.th/';
+        const org = this.data.organization || {};
+        const baseUrl = org.website || 'https://psdg.mof.go.th/';
+        const kmUrl = org.knowledge_center || 'https://km.mof.go.th/';
+        const opsplanUrl = org.planning_system || 'https://opsplan.mof.go.th/';
+        const catalogUrl = org.catalog || 'https://catalog.mof.go.th/';
+        const fySupported = (this.data.fiscal_years && this.data.fiscal_years.supported) || ['2568', '2569', '2570'];
+        const fyCurrent = (this.data.fiscal_years && this.data.fiscal_years.current) || '2569';
 
-        // เพิ่ม metadata ให้ chunks เพื่อรองรับ citations
-        chunks.push({
-            id: 'knowledge_center',
-            category: 'search',
-            keywords: ['ศูนย์ความรู้', 'ค้นหา', 'เอกสาร', 'pdf', 'ดาวน์โหลด', 'ระเบียบ', 'กฎหมาย', 'คำวินิจฉัย', 'รายงาน', 'คลังความรู้', 'ตู้สาระ'],
-            title: 'ศูนย์ความรู้ สำนักงานปลัดกระทรวงการคลัง',
-            sourceUrl: baseUrl,
-            publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-            documentStatus: 'published',
-            content: `ศูนย์ความรู้ สำนักงานปลัดกระทรวงการคลัง ให้บริการ:\n- คลังความรู้ (Knowledge Bank)\n- ตู้สาระ (Information Cabinet)\n- ข้อมูล KM (KM Information)\n- เอกสารและคู่มือปฏิบัติงาน\n- กฎหมายและระเบียบ ข้อบังคับ\n- คำวินิจฉัยและรายงานผล\n- ข่าวสารและอินโฟกราฟิก\n- วิดีโอสารคดีความรู้\nสามารถสืบค้นได้ที่เว็บไซต์หลัก https://km.mof.go.th/`
+        // Helper: สร้าง chunk มาตรฐาน
+        const addChunk = ({ id, category, keywords, title, content, sourceUrl = baseUrl, publisher = 'กลุ่มพัฒนาระบบบริหาร', documentStatus = 'VERIFIED', fiscalYear = null, section = null }) => {
+            const expandedKeywords = [...new Set([...keywords, ...this._getSynonymKeywords(keywords)])];
+            chunks.push({
+                id,
+                category,
+                keywords: expandedKeywords,
+                title,
+                sourceUrl,
+                publisher,
+                documentStatus,
+                fiscalYear,
+                section,
+                content,
+                text: content,
+                created_at: new Date().toISOString()
+            });
+        };
+
+        // 1. ข้อมูลองค์กรและอำนาจหน้าที่
+        addChunk({
+            id: 'org_profile',
+            category: 'organization',
+            keywords: ['กลุ่มพัฒนาระบบบริหาร', 'กพร.', 'psdg', 'หน้าที่', 'อำนาจหน้าที่', 'โครงสร้าง', 'ประวัติ', 'วิสัยทัศน์', 'พันธกิจ', 'สังกัด', 'สปก.', 'สำนักงานปลัดกระทรวงการคลัง', 'ช่องทางติดต่อ', 'บทบาท', 'ความรับผิดชอบ'],
+            title: 'ข้อมูลองค์กรและอำนาจหน้าที่ กลุ่มพัฒนาระบบบริหาร',
+            content: `${org.name_th} (${org.name_en}) ชื่อย่อคือ ${org.abbr_th} หรือ ${org.abbr_en} สังกัด ${org.parent} (${org.parent_en}) ${org.role_th}\n\nอำนาจหน้าที่หลัก:\n${(this.data.authority_and_responsibilities && this.data.authority_and_responsibilities.th) || ''}\n\nที่อยู่: ${org.address}\nโทร: ${org.phone}\nอีเมล: ${org.email}\nสายด่วน: ${org.hotline}\nเว็บไซต์: ${org.website}`,
+            fiscalYear: null,
+            section: 'องค์กร'
         });
 
-        chunks.push({
-            id: 'org_name',
-            category: 'general',
-            keywords: ['สปก', 'สำนักงานปลัดกระทรวงการคลัง', 'mof', 'กระทรวงการคลัง', 'คืออะไร', 'ชื่อเต็ม', 'สังกัด', 'บทบาท', 'ประวัติ', 'องค์กร'],
-            title: 'ข้อมูลองค์กร สำนักงานปลัดกระทรวงการคลัง',
-            sourceUrl: baseUrl,
-            publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-            documentStatus: 'published',
-            content: `${org.name_th} (${org.name_en}) ชื่อย่อคือ ${org.abbr_th} หรือ ${org.abbr_en} ดำเนินการโดย ${org.operator} มีหน้าที่บริหารจัดการด้านการคลัง การงบประมาณ และระบบบริหารจัดการภาครัฐ เพื่อสนับสนุนการพัฒนาประเทศอย่างยั่งยืน`
+        // 2. วิสัยทัศน์
+        addChunk({
+            id: 'vision',
+            category: 'organization',
+            keywords: ['วิสัยทัศน์', 'vision', 'เป้าหมาย'],
+            title: 'วิสัยทัศน์ กลุ่มพัฒนาระบบบริหาร',
+            content: `วิสัยทัศน์: ${this.data.vision && this.data.vision.text_th}`,
+            fiscalYear: null,
+            section: 'องค์กร'
         });
 
-        chunks.push({
+        // 3. พันธกิจ
+        addChunk({
+            id: 'mission',
+            category: 'organization',
+            keywords: ['พันธกิจ', 'mission', 'หน้าที่'],
+            title: 'พันธกิจ กลุ่มพัฒนาระบบบริหาร',
+            content: `พันธกิจ: ${this.data.mission && this.data.mission.text_th}`,
+            fiscalYear: null,
+            section: 'องค์กร'
+        });
+
+        // 4. ประเด็นยุทธศาสตร์
+        if (this.data.strategic_issues && Array.isArray(this.data.strategic_issues)) {
+            for (const issue of this.data.strategic_issues) {
+                addChunk({
+                    id: `strategy_${issue.id}`,
+                    category: 'strategy',
+                    keywords: ['ยุทธศาสตร์', 'แผนยุทธศาสตร์', 'พัฒนาระบบราชการ', 'พัฒนาภาครัฐ', 'กลยุทธ์', issue.title_th],
+                    title: `ประเด็นยุทธศาสตร์ที่ ${issue.id}: ${issue.title_th}`,
+                    content: `ประเด็นยุทธศาสตร์ที่ ${issue.id}: ${issue.title_th} - ${issue.desc_th}`,
+                    sourceUrl: opsplanUrl,
+                    fiscalYear: null,
+                    section: 'ยุทธศาสตร์'
+                });
+            }
+        }
+
+        // 5. PMQA
+        addChunk({
+            id: 'pmqa_overview',
+            category: 'pmqa',
+            keywords: ['PMQA', 'PMQA 4.0', 'หมวด PMQA', 'เกณฑ์การประเมิน', 'แบบประเมิน PMQA', 'รายงานผล PMQA', 'หลักฐานประกอบการประเมิน', 'คู่มือ PMQA'],
+            title: 'PMQA และ PMQA 4.0 ภาพรวม',
+            content: `PMQA (Public Sector Quality Award) คือเกณฑ์การประเมินคุณภาพการบริหารภาครัฐ PMQA 4.0 เป็นเวอร์ชันล่าสุดที่เน้นการพัฒนาระบบราชการให้ทันสมัย โปร่งใส และตรวจสอบได้ กลุ่มพัฒนาระบบบริหารรับผิดชอบการประเมินและสนับสนุนหน่วยงานในสังกัดสำนักงานปลัดกระทรวงการคลังให้ผ่านเกณฑ์ PMQA 4.0`,
+            sourceUrl: kmUrl,
+            fiscalYear: fyCurrent,
+            section: 'PMQA'
+        });
+
+        addChunk({
+            id: 'pmqa_categories',
+            category: 'pmqa',
+            keywords: ['หมวด PMQA', 'เกณฑ์ PMQA', 'ประเมิน PMQA', 'คะแนน PMQA'],
+            title: 'หมวดการประเมิน PMQA 4.0',
+            content: `PMQA 4.0 ประกอบด้วยหมวดการประเมินหลัก ได้แก่ การนำองค์กร การวางแผนยุทธศาสตร์ การให้ความสำคัญกับลูกค้า การวัดการวิเคราะห์และการจัดการความรู้ การมุ่งเน้นทรัพยากรบุคคล การจัดการกระบวนงาน และผลลัพธ์ทางธุรกิจ`,
+            sourceUrl: kmUrl,
+            fiscalYear: fyCurrent,
+            section: 'PMQA'
+        });
+
+        // 6. KPI และตัวชี้วัด
+        addChunk({
+            id: 'kpi_overview',
+            category: 'kpi',
+            keywords: ['KPI', 'ตัวชี้วัด', 'คำอธิบายตัวชี้วัด', 'เป้าหมาย', 'น้ำหนัก', 'สูตรการคำนวณ', 'เกณฑ์การให้คะแนน', 'ผลการดำเนินงาน', 'ปีงบประมาณ', fyCurrent],
+            title: 'ตัวชี้วัดความสำเร็จ (KPI) ประจำปีงบประมาณ ' + fyCurrent,
+            content: `ตัวชี้วัดความสำเร็จ (KPI) ของกลุ่มพัฒนาระบบบริหาร ประจำปีงบประมาณ ${fyCurrent} ครอบคลุมด้านการพัฒนาระบบราชการ การบริหารความรู้ การประเมินผล และการให้บริการ แต่ละตัวชี้วัดมีคำอธิบาย เป้าหมาย น้ำหนัก สูตรการคำนวณ และเกณฑ์การให้คะแนนที่ชัดเจน`,
+            sourceUrl: opsplanUrl,
+            fiscalYear: fyCurrent,
+            section: 'KPI'
+        });
+
+        addChunk({
+            id: 'kpi_fiscal_years',
+            category: 'kpi',
+            keywords: ['ปีงบประมาณ', '2568', '2569', '2570', 'ข้อมูลย้อนหลัง', 'ปีปัจจุบัน'],
+            title: 'ปีงบประมาณที่รองรับ',
+            content: `ระบบรองรับข้อมูลปีงบประมาณ ${fySupported.join(', ')} ปีปัจจุบันคือ ${fyCurrent} ข้อมูลปี 2568 ถือเป็นข้อมูลย้อนหลัง ไม่นำข้อมูลปีเก่ามาตอบแทนปีปัจจุบันโดยอัตโนมัติ หากยังไม่มีข้อมูลปีที่ต้องการ ระบบจะแจ้งว่าไม่มีเอกสารที่ยืนยันได้`,
+            sourceUrl: opsplanUrl,
+            fiscalYear: null,
+            section: 'KPI'
+        });
+
+        // 7. การปรับปรุงกระบวนงาน
+        addChunk({
+            id: 'process_improvement',
+            category: 'process',
+            keywords: ['ปรับปรุงกระบวนงาน', 'วิเคราะห์กระบวนงาน', 'ลดขั้นตอน', 'คู่มือปฏิบัติงาน', 'SOP', 'Work Manual', 'Flowchart'],
+            title: 'การปรับปรุงกระบวนงาน',
+            content: `การปรับปรุงกระบวนงานเป็นการวิเคราะห์ขั้นตอนการทำงานที่มีอยู่ ระบุจุดที่เกิดความล่าช้าหรือความซ้ำซ้อน แล้วออกแบบขั้นตอนใหม่ให้มีประสิทธิภาพมากขึ้น กลุ่มพัฒนาระบบบริหารจัดทำคู่มือปฏิบัติงานและ SOP เพื่อใช้เป็นแนวทางในการปฏิบัติงานอย่างถูกต้องและเป็นมาตรฐานเดียวกัน`,
+            sourceUrl: kmUrl,
+            fiscalYear: null,
+            section: 'กระบวนงาน'
+        });
+
+        // 8. การบริหารความเสี่ยง
+        addChunk({
+            id: 'risk_management',
+            category: 'risk',
+            keywords: ['บริหารความเสี่ยง', 'Risk Management', 'Risk Assessment', 'Risk Matrix', 'แผนบริหารความเสี่ยง', 'ติดตามความเสี่ยง', 'ประเมินความเสี่ยง'],
+            title: 'การบริหารความเสี่ยง',
+            content: `การบริหารความเสี่ยงคือกระบวนการระบุ วิเคราะห์ ประเมิน และจัดการความเสี่ยงที่อาจส่งผลต่อการดำเนินงานของกลุ่ม Risk Matrix ใช้เป็นเครื่องมือในการจัดลำดับความสำคัญของความเสี่ยงตามโอกาสเกิดและผลกระทบ กลุ่มพัฒนาระบบบริหารจัดทำแผนบริหารความเสี่ยงและติดตามอย่างสม่ำเสมอ`,
+            sourceUrl: kmUrl,
+            fiscalYear: null,
+            section: 'ความเสี่ยง'
+        });
+
+        // 9. การควบคุมภายใน
+        addChunk({
+            id: 'internal_control',
+            category: 'internal_control',
+            keywords: ['ควบคุมภายใน', 'Internal Control', 'ระบบควบคุมภายใน', 'หลักเกณฑ์ควบคุมภายใน', 'รายงานควบคุมภายใน'],
+            title: 'ระบบควบคุมภายใน',
+            content: `ระบบควบคุมภายในเป็นกลไกสำคัญในการกำกับดูแลให้การดำเนินงานของหน่วยงานเป็นไปตามกฎหมาย ระเบียบ และข้อบังคับ กลุ่มพัฒนาระบบบริหารจัดทำรายงานควบคุมภายในและประเมินประสิทธิภาพของระบบควบคุมภายในเป็นประจำ`,
+            sourceUrl: kmUrl,
+            fiscalYear: null,
+            section: 'ควบคุมภายใน'
+        });
+
+        // 10. การจัดการความรู้ (KM)
+        addChunk({
+            id: 'km_overview',
+            category: 'km',
+            keywords: ['KM', 'การจัดการความรู้', 'Knowledge Management', 'Knowledge Bank', 'ตู้สาระ', 'Information Cabinet', 'แผน KM', 'คลังความรู้', 'ศูนย์ความรู้'],
+            title: 'การจัดการความรู้ (KM) ของกลุ่ม',
+            content: `กลุ่มพัฒนาระบบบริหารดำเนินการจัดการความรู้ผ่านคลังความรู้ (Knowledge Bank) และตู้สาระ (Information Cabinet) รวบรวมเอกสาร คู่มือ องค์ความรู้ กฎหมายและระเบียบ และผลงานเพื่อให้บุคลากรและประชาชนค้นหาและใช้ประโยชน์ได้สะดวก มีแผน KM ประจำปีและกิจกรรม KM อย่างต่อเนื่อง`,
+            sourceUrl: kmUrl,
+            fiscalYear: null,
+            section: 'KM'
+        });
+
+        // 11. ความพึงพอใจของผู้รับบริการ
+        addChunk({
+            id: 'service_satisfaction',
+            category: 'satisfaction',
+            keywords: ['ความพึงพอใจ', 'สำรวจความพึงพอใจ', 'แบบสอบถาม', 'ข้อเสนอแนะ', 'ปรับปรุงบริการ', 'ผลสำรวจ', 'รายงานผลสำรวจ', fyCurrent],
+            title: 'การสำรวจความพึงพอใจผู้รับบริการ',
+            content: `กลุ่มพัฒนาระบบบริหารจัดทำแบบสอบถามความพึงพอใจเพื่อรับข้อเสนอแนะจากผู้รับบริการ และนำผลการสำรวจมาปรับปรุงการให้บริการให้ดียิ่งขึ้น รายงานผลการสำรวจจัดทำเป็นประจำทุกปีงบประมาณ`,
+            sourceUrl: kmUrl,
+            fiscalYear: fyCurrent,
+            section: 'ความพึงพอใจ'
+        });
+
+        // 12. เอกสารและโครงการ
+        addChunk({
+            id: 'documents_projects',
+            category: 'documents',
+            keywords: ['คู่มือ', 'เอกสาร', 'โครงการพิเศษ', 'รายงานผล', 'แผนงาน', 'กฎหมาย', 'ระเบียบ', 'คำสั่ง', 'หนังสือเวียน', 'PDF', 'ดาวน์โหลดเอกสาร', 'สืบค้นเอกสาร'],
+            title: 'เอกสารและโครงการพัฒนาระบบราชการ',
+            content: `กลุ่มพัฒนาระบบบริหารจัดทำเอกสารต่างๆ ได้แก่ คู่มือปฏิบัติงาน รายงานผลการดำเนินงานรายไตรมาสและรายปี เอกสารเกี่ยวกับ PMQA โครงการพัฒนาระบบราชการ กฎหมาย ระเบียบ คำสั่ง และหนังสือเวียน สามารถสืบค้นและดาวน์โหลดได้จากเว็บไซต์ทางการและคลังความรู้`,
+            sourceUrl: catalogUrl,
+            fiscalYear: null,
+            section: 'เอกสาร'
+        });
+
+        // 13. ช่องทางติดต่อ
+        addChunk({
             id: 'org_contact',
             category: 'contact',
-            keywords: ['ติดต่อ', 'เบอร์', 'โทร', 'โทรสาร', 'fax', 'email', 'อีเมล', 'ที่อยู่', 'สายด่วน', '1689', 'สถานที่', 'แผนที่', 'อยู่ที่ไหน', 'พระรามที่ 6', 'พญาไท'],
-            title: 'ข้อมูลการติดต่อ สำนักงานปลัดกระทรวงการคลัง',
-            sourceUrl: `${baseUrl}contact-us/`,
-            publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-            documentStatus: 'published',
-            content: `ช่องทางการติดต่อ สำนักงานปลัดกระทรวงการคลัง:\n- ที่อยู่: ${org.address}\n- เบอร์โทรศัพท์: ${org.phone}\n- โทรสาร (Fax): ${org.fax}\n- อีเมล: ${org.email}\n- สายด่วน: ${org.hotline}`
+            keywords: ['ติดต่อ', 'เบอร์', 'โทร', 'อีเมล', 'email', 'ที่อยู่', 'address', 'สายด่วน', '1689', 'เว็บไซต์', 'ช่องทางติดต่อ'],
+            title: 'ข้อมูลการติดต่อ กลุ่มพัฒนาระบบบริหาร',
+            content: `ช่องทางการติดต่อ กลุ่มพัฒนาระบบบริหาร สำนักงานปลัดกระทรวงการคลัง:\n- ที่อยู่: ${org.address}\n- เบอร์โทรศัพท์: ${org.phone}\n- อีเมล: ${org.email}\n- สายด่วน: ${org.hotline}\n- เว็บไซต์: ${org.website}\n- คลังความรู้: ${kmUrl}`,
+            fiscalYear: null,
+            section: 'ติดต่อ'
         });
 
-        chunks.push({
-            id: 'vision',
-            category: 'general',
-            keywords: ['วิสัยทัศน์', 'vision', 'เป้าหมาย'],
-            title: 'วิสัยทัศน์ สำนักงานปลัดกระทรวงการคลัง',
-            sourceUrl: `${baseUrl}about/vision/`,
-            publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-            documentStatus: 'published',
-            content: `วิสัยทัศน์ สำนักงานปลัดกระทรวงการคลัง: "${this.data.vision.text_th}"`
-        });
-
-        chunks.push({
-            id: 'mission',
-            category: 'general',
-            keywords: ['ภารกิจ', 'mission', 'หน้าที่'],
-            title: 'ภารกิจ สำนักงานปลัดกระทรวงการคลัง',
-            sourceUrl: `${baseUrl}about/vision/`,
-            publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-            documentStatus: 'published',
-            content: `ภารกิจ สำนักงานปลัดกระทรวงการคลัง: ${this.data.mission.text_th}`
-        });
-
-        for (const issue of this.data.strategic_issues) {
-            chunks.push({
-                id: `strategic_${issue.id}`,
-                category: 'general',
-                keywords: ['ยุทธศาสตร์', 'เป้าหมาย', 'กลยุทธ์', 'หมวดหมู่ความรู้', issue.title_th],
-                title: `ประเด็นความรู้ที่ ${issue.id}: ${issue.title_th}`,
-                sourceUrl: `${baseUrl}document-type/knowledge/`,
-                publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-                documentStatus: 'published',
-                content: `ประเด็นความรู้ที่ ${issue.id}: ${issue.title_th} - ${issue.desc_th}`
-            });
-        }
-
-        for (const comm of this.data.committees) {
-            chunks.push({
-                id: `committee_${comm.name_th.slice(0, 10)}`,
-                category: 'general',
-                keywords: ['คณะทำงาน', 'คณะกรรมการ', 'กรรมการ', 'KM Team', comm.name_th],
-                title: comm.name_th,
-                sourceUrl: `${baseUrl}contact-us/`,
-                publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-                documentStatus: 'published',
-                content: `${comm.name_th} (${comm.name_en}): ${comm.role_th}`
-            });
-        }
-
-        for (const service of this.data.services) {
-            chunks.push({
-                id: `service_${service.name_th.slice(0, 10)}`,
-                category: 'service',
-                keywords: ['บริการ', 'ขั้นตอน', 'ขอ', 'คลังความรู้', 'ตู้สาระ', service.name_th],
-                title: service.name_th,
-                sourceUrl: baseUrl,
-                publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-                documentStatus: 'published',
-                content: `${service.name_th}: ${service.desc_th}`
-            });
-        }
-
-        for (const event of this.data.events) {
-            chunks.push({
-                id: `event_${event.name_th.slice(0, 8)}`,
-                category: 'document',
-                keywords: ['เอกสาร', 'คู่มือ', 'รายงาน', event.name_th],
-                title: event.name_th,
-                sourceUrl: `${baseUrl}document-type/knowledge/`,
-                publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-                documentStatus: 'published',
-                content: `เอกสาร: ${event.name_th} (วันที่ ${event.date_th}) - ${event.desc_th}`
-            });
-        }
-
-        chunks.push({
+        // 14. การทักทาย
+        addChunk({
             id: 'greeting',
             category: 'chat',
             keywords: ['สวัสดี', 'หวัดดี', 'hello', 'hi', 'ทักทาย', 'สบายดีไหม'],
             title: 'การทักทาย',
-            sourceUrl: baseUrl,
-            publisher: 'สำนักงานปลัดกระทรวงการคลัง',
-            documentStatus: 'published',
-            content: `สวัสดีครับ! ผมคือ Chatbot ผู้ช่วยของสำนักงานปลัดกระทรวงการคลัง (MOF/OPS) ยินดีให้บริการข้อมูลทั่วไป การติดต่อ การบริการ และการสืบค้นเอกสารความรู้ครับ ถามมาได้เลยครับ`
+            content: `สวัสดีครับ! ผมคือ PSDG Smart Assistant ผู้ช่วยข้อมูลด้านการพัฒนาระบบราชการของกลุ่มพัฒนาระบบบริหาร สำนักงานปลัดกระทรวงการคลัง ยินดีให้บริการข้อมูลเกี่ยวกับภารกิจของกลุ่ม PMQA KPI การประเมินผล การพัฒนาระบบราชการ การปรับปรุงกระบวนงาน การบริหารความเสี่ยง การควบคุมภายใน การจัดการความรู้ และรายงานเอกสารราชการ ถามมาได้เลยครับ`,
+            fiscalYear: null,
+            section: 'ทั่วไป'
         });
 
         // แปลง text → content สำหรับ compatibility กับโค้ดเดิม
@@ -155,61 +287,84 @@ class RAGEngine {
             if (chunk.text && !chunk.content) {
                 chunk.content = chunk.text;
             }
-            // รักษา field 'text' ไว้เพื่อ backward compatibility
             chunk.text = chunk.content;
         }
 
         return chunks;
     }
 
-    classifyIntent(query) {
-        const q = query.toLowerCase();
+    _getSynonymKeywords(keywords) {
+        const expanded = [];
+        for (const kw of keywords) {
+            const kwLower = this._normalizeText(kw);
+            if (SYNONYMS[kwLower]) {
+                expanded.push(...SYNONYMS[kwLower]);
+            }
+        }
+        return expanded;
+    }
 
-        // 1. ตรวจสอบจาก keywords ของแต่ละ chunk ก่อน (ใช้ category เป็น intent)
+    classifyIntent(query) {
+        const q = this._normalizeText(query);
+
+        // 1. ตรวจสอบจาก keywords ของแต่ละ chunk ก่อน (ใช้ category เป็น hint)
+        let firstMatchCategory = null;
+        let kmMatched = false;
         for (const chunk of this.chunks) {
             if (chunk.keywords) {
                 for (const kw of chunk.keywords) {
-                    if (q.includes(kw.toLowerCase())) {
-                        return chunk.category;
+                    if (q.includes(this._normalizeText(kw))) {
+                        if (!firstMatchCategory) firstMatchCategory = chunk.category;
+                        if (chunk.category === 'km') kmMatched = true;
                     }
                 }
             }
         }
+        if (kmMatched) return 'km';
+        if (firstMatchCategory) return firstMatchCategory;
 
-        // 2. ตรวจสอบจาก keyword dictionaries
+        // 2. ตรวจสอบจาก keyword dictionaries ที่ขยายด้วยคำพ้อง
         const keywords = {
-            contact: ['ติดต่อ', 'เบอร์', 'โทร', 'email', 'อีเมล', 'ที่อยู่', 'สายด่วน', '1689', 'fax', 'โทรสาร', 'ที่ไหน', 'พระรามที่ 6', 'พญาไท'],
-            chat: ['สวัสดี', 'หวัดดี', 'hello', 'hi', 'ขอบคุณ', 'บาย', 'ลาก่อน'],
-            service: ['บริการ', 'ขั้นตอน', 'วิธี', 'ขอ', 'สมัคร', 'คลังความรู้', 'ตู้สาระ'],
-            search: ['ค้นหา', 'เอกสาร', 'pdf', 'ดาวน์โหลด', 'ไฟล์', 'รายงาน', 'คู่มือ', 'ระเบียบ'],
-            general: ['คืออะไร', 'สปก', 'สำนักงานปลัดกระทรวงการคลัง', 'mof', 'กระทรวงการคลัง', 'วิสัยทัศน์', 'ภารกิจ', 'ยุทธศาสตร์', 'คณะทำงาน', 'โครงสร้าง', 'ประวัติ']
+            km: ['KM', 'การจัดการความรู้', 'Knowledge Management', 'Knowledge Bank', 'ตู้สาระ', 'แผน KM', 'ศูนย์ความรู้', 'คลังความรู้'],
+            organization: ['กลุ่มพัฒนาระบบบริหาร', 'กพร.', 'psdg', 'หน้าที่', 'อำนาจหน้าที่', 'สปก.', 'สำนักงานปลัดกระทรวงการคลัง', 'วิสัยทัศน์', 'พันธกิจ', 'ช่องทางติดต่อ'],
+            strategy: ['ยุทธศาสตร์', 'แผนยุทธศาสตร์', 'พัฒนาระบบราชการ', 'พัฒนาภาครัฐ', 'กลยุทธ์', 'แผนปฏิบัติราชการ'],
+            pmqa: ['PMQA', 'PMQA 4.0', 'หมวด PMQA', 'เกณฑ์การประเมิน', 'แบบประเมิน PMQA'],
+            kpi: ['KPI', 'ตัวชี้วัด', 'เป้าหมาย', 'น้ำหนัก', 'ผลการดำเนินงาน', 'ปีงบประมาณ'],
+            process: ['ปรับปรุงกระบวนงาน', 'คู่มือปฏิบัติงาน', 'SOP', 'Flowchart', 'ลดขั้นตอน'],
+            risk: ['บริหารความเสี่ยง', 'Risk Matrix', 'แผนบริหารความเสี่ยง', 'ประเมินความเสี่ยง'],
+            internal_control: ['ควบคุมภายใน', 'Internal Control', 'ระบบควบคุมภายใน', 'รายงานควบคุมภายใน'],
+            satisfaction: ['ความพึงพอใจ', 'สำรวจความพึงพอใจ', 'แบบสอบถาม', 'ข้อเสนอแนะ'],
+            documents: ['คู่มือ', 'เอกสาร', 'โครงการพิเศษ', 'รายงานผล', 'PDF', 'สืบค้นเอกสาร'],
+            contact: ['ติดต่อ', 'เบอร์', 'โทร', 'อีเมล', 'ที่อยู่', 'สายด่วน'],
+            chat: ['สวัสดี', 'หวัดดี', 'hello', 'hi', 'ทักทาย']
         };
 
         for (const [intent, kws] of Object.entries(keywords)) {
-            if (kws.some(kw => q.includes(kw))) {
+            if (kws.some(kw => q.includes(this._normalizeText(kw)))) {
                 return intent;
             }
         }
+
         return 'general';
     }
 
     searchChunks(query, topK = 3) {
-        const q = query.toLowerCase();
+        const q = this._normalizeText(query);
         const scored = [];
 
         for (const chunk of this.chunks) {
             let score = 0;
-            const textLower = chunk.text.toLowerCase();
+            const textLower = this._normalizeText(chunk.text);
 
             // 1. ตรวจว่า query ทั้งประโยค หรือส่วนหนึ่ง มีอยู่ใน text ไหม
             if (textLower.includes(q)) {
                 score += 10;
             }
 
-            // 2. ตรวจ keywords ของ chunk
+            // 2. ตรวจ keywords ของ chunk (รวมคำพ้อง)
             if (chunk.keywords) {
                 for (const kw of chunk.keywords) {
-                    const kwLower = kw.toLowerCase();
+                    const kwLower = this._normalizeText(kw);
                     if (q.includes(kwLower) || kwLower.includes(q)) {
                         score += 5;
                     }
@@ -262,7 +417,7 @@ class RAGEngine {
         const { matches } = this.answer(query);
 
         if (!matches || matches.length === 0) {
-            return 'ขออภัยครับ ยังไม่พบข้อมูลที่ตรงกับคำถามนี้โดยตรง\n\nท่านสามารถติดต่อสอบถามเจ้าหน้าที่สำนักงานปลัดกระทรวงการคลัง ได้โดยตรงที่:\n📞 โทร: 02-126-5800, 02-273-9408\n📧 อีเมล: saraban@mof.go.th\n📞 สายด่วน: 1689\n🌐 เว็บไซต์: https://km.mof.go.th/';
+            return 'ขออภัยครับ ยังไม่พบข้อมูลที่ตรงกับคำถามนี้ในฐานความรู้ของกลุ่มพัฒนาระบบบริหาร\n\nท่านสามารถติดต่อสอบถามเจ้าหน้าที่กลุ่มพัฒนาระบบบริหาร ได้โดยตรงที่:\n📞 โทร: 02-126-5800, 02-273-9408\n📧 อีเมล: saraban@mof.go.th\n📞 สายด่วน: 1689\n🌐 เว็บไซต์: https://psdg.mof.go.th/';
         }
 
         const texts = matches.map(m => m.text);
@@ -277,7 +432,7 @@ class RAGEngine {
 
     /**
      * แปลง chunks เป็น RetrievedDocument format ที่ PromptEngine ต้องการ
-     * เพิ่ม metadata ที่มีอยู่ (title, sourceUrl, publisher, documentStatus)
+     * เพิ่ม metadata ที่มีอยู่ (title, sourceUrl, publisher, documentStatus, fiscalYear)
      *
      * @param {Array} chunks - ผลลัพธ์จาก searchChunks()
      * @returns {Array<Object>} retrievedDocuments ในรูปแบบที่ ContextBuilder ต้องการ
@@ -293,19 +448,19 @@ class RAGEngine {
             title: chunk.title || null,
             sourceUrl: chunk.sourceUrl || null,
             publisher: chunk.publisher || null,
-            publishedDate: null,
+            publishedDate: chunk.created_at || null,
             effectiveDate: null,
-            updatedAt: null,
-            documentStatus: chunk.documentStatus || 'published',
+            updatedAt: chunk.created_at || null,
+            documentStatus: chunk.documentStatus || 'VERIFIED',
+            fiscalYear: chunk.fiscalYear || null,
             pageNumber: null,
-            sectionTitle: null,
+            sectionTitle: chunk.section || null,
             retrievalScore: null
         }));
     }
 
     /**
      * เพิ่ม chunks ใหม่เข้าไปในฐานความรู้แบบ real-time (ไม่ต้องรีสตาร์ทเซิร์ฟเวอร์)
-     * ใช้หลังจากอัพโหลดไฟล์และแยกข้อความเป็น chunks แล้ว
      *
      * @param {Array<Object>} newChunks - รายการ chunks ใหม่
      * @returns {Array<Object>} chunks ทั้งหมดใน engine หลังจากเพิ่มแล้ว
@@ -315,12 +470,17 @@ class RAGEngine {
             return this.chunks;
         }
 
-        // จัดการฟิลด์ให้เข้ากับรูปแบบเดิม (text <-> content)
         for (const chunk of newChunks) {
             if (chunk.text && !chunk.content) {
                 chunk.content = chunk.text;
             }
             chunk.text = chunk.content;
+            if (!chunk.documentStatus) {
+                chunk.documentStatus = 'UNVERIFIED';
+            }
+            if (!chunk.fiscalYear) {
+                chunk.fiscalYear = null;
+            }
         }
 
         this.chunks.push(...newChunks);

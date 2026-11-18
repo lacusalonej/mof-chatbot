@@ -388,13 +388,21 @@ function processWithoutLLM(input, ragEngine) {
       sources = ragResult.matches.map(m => m.id);
     }
 
-    // ใช้ intent จาก RAGEngine แต่แปลงเป็นรูปแบบใหม่
+    // ใช้ intent จาก RAGEngine แต่แปลงเป็นรูปแบบใหม่ (10 หมวด PSDG)
     const intentMap = {
-      'general': 'ORGANIZATION_INFORMATION',
-      'contact': 'CONTACT_AND_SUPPORT',
-      'service': 'PUBLIC_SERVICES',
-      'search': 'DOCUMENT_SEARCH',
-      'chat': 'GENERAL_GREETING'
+      'organization': 'ORGANIZATION_PROFILE',
+      'strategy': 'STRATEGY_AND_DEVELOPMENT',
+      'pmqa': 'PMQA',
+      'kpi': 'PERFORMANCE_AND_KPI',
+      'process': 'PROCESS_IMPROVEMENT',
+      'risk': 'RISK_MANAGEMENT',
+      'internal_control': 'INTERNAL_CONTROL',
+      'km': 'KNOWLEDGE_MANAGEMENT',
+      'satisfaction': 'SERVICE_SATISFACTION',
+      'documents': 'DOCUMENTS_AND_PROJECTS',
+      'contact': 'ORGANIZATION_PROFILE', // เก็บไว้สำหรับ backward compatibility
+      'chat': 'ORGANIZATION_PROFILE',
+      'general': 'ORGANIZATION_PROFILE'
     };
 
     const mappedIntent = intentMap[ragResult.intent] || 'INSUFFICIENT_INFORMATION';

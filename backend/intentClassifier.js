@@ -1,142 +1,121 @@
 /**
- * IntentClassifier สำหรับ Chatbot สำนักงานปลัดกระทรวงการคลัง (MOF/OPS)
+ * IntentClassifier สำหรับ Chatbot ผู้ช่วยอัจฉริยะกลุ่มพัฒนาระบบบริหาร (PSDG)
+ * สำนักงานปลัดกระทรวงการคลัง
  *
  * ใช้ approach แบบ deterministic/keyword-based เพื่อ classification
  * ไม่ใช้ LLM เสริม (ยังไม่มี integration)
  *
- * รองรับ 14 หมวดหมู่ตามข้อกำหนด:
- * - GENERAL_GREETING
- * - ORGANIZATION_INFORMATION
- * - MISSION_AND_RESPONSIBILITIES
- * - PUBLIC_SERVICES
- * - GOVERNMENT_SERVICE_IMPROVEMENT
- * - LAWS_AND_REGULATIONS
- * - MANUALS_AND_DOCUMENTS
- * - DIGITAL_GOVERNMENT
- * - PUBLIC_SECTOR_DEVELOPMENT
- * - CONTACT_AND_SUPPORT
- * - DOCUMENT_SEARCH
- * - FOLLOW_UP_QUESTION
- * - OUT_OF_SCOPE
- * - INSUFFICIENT_INFORMATION
+ * รองรับ 10 หมวดหลักตามข้อกำหนด PSDG:
+ * - ORGANIZATION_PROFILE
+ * - STRATEGY_AND_DEVELOPMENT
+ * - PMQA
+ * - PERFORMANCE_AND_KPI
+ * - PROCESS_IMPROVEMENT
+ * - RISK_MANAGEMENT
+ * - INTERNAL_CONTROL
+ * - KNOWLEDGE_MANAGEMENT
+ * - SERVICE_SATISFACTION
+ * - DOCUMENTS_AND_PROJECTS
  */
 
 'use strict';
 
 /**
- * รายชื่อ intent ทั้งหมดที่รองรับ (allowlist)
+ * รายชื่อ intent ทั้งหมดที่รองรับ (allowlist) ตามข้อกำหนด PSDG
  */
 const VALID_INTENTS = [
-  'GENERAL_GREETING',
-  'ORGANIZATION_INFORMATION',
-  'MISSION_AND_RESPONSIBILITIES',
-  'PUBLIC_SERVICES',
-  'GOVERNMENT_SERVICE_IMPROVEMENT',
-  'LAWS_AND_REGULATIONS',
-  'MANUALS_AND_DOCUMENTS',
-  'DIGITAL_GOVERNMENT',
-  'PUBLIC_SECTOR_DEVELOPMENT',
-  'CONTACT_AND_SUPPORT',
-  'DOCUMENT_SEARCH',
-  'FOLLOW_UP_QUESTION',
+  'ORGANIZATION_PROFILE',
+  'STRATEGY_AND_DEVELOPMENT',
+  'PMQA',
+  'PERFORMANCE_AND_KPI',
+  'PROCESS_IMPROVEMENT',
+  'RISK_MANAGEMENT',
+  'INTERNAL_CONTROL',
+  'KNOWLEDGE_MANAGEMENT',
+  'SERVICE_SATISFACTION',
+  'DOCUMENTS_AND_PROJECTS',
   'OUT_OF_SCOPE',
   'INSUFFICIENT_INFORMATION'
 ];
 
 /**
- * พจนานุกรีย์และ keyword สำหรับแต่ละ intent
+ * พจนานุกรมและ keyword สำหรับแต่ละ intent
  * เรียงลำดับจากเฉพาะไปยังทั่วไป (เฉพาะจะถูกตรวจสอบก่อน)
  */
 const INTENT_KEYWORDS = {
-  GENERAL_GREETING: [
-    'สวัสดี', 'หวัดดี', 'hello', 'hi', 'ทักทาย', 'สบายดีไหม',
-    'ดี', 'ไงบ้าง', 'หวัด', 'หัวข้อ', 'ใช้ไหม', 'เช่า', 'กับ', 'เป็นไง'
+  ORGANIZATION_PROFILE: [
+    'กลุ่มพัฒนาระบบบริหาร', 'กพร.', 'psdg', 'หน้าที่', 'อำนาจหน้าที่',
+    'โครงสร้าง', 'ประวัติ', 'วิสัยทัศน์', 'พันธกิจ', 'สังกัด', 'สปก.',
+    'สำนักงานปลัดกระทรวงการคลัง', 'ช่องทางติดต่อ', 'บทบาท', 'ความรับผิดชอบ'
   ],
 
-  ORGANIZATION_INFORMATION: [
-    'เป็นอะไร', 'คืออะไร', 'โครงสร้าง', 'ประวัติ', 'วิสัยทัศน์', 'vision',
-    'องค์กร', 'มีอะไรบ้าง', 'สปก', 'สำนักงานปลัดกระทรวงการคลัง', 'มข.', 'mof',
-    'คณะกรรมการ',
-    'คณะผู้บริหาร', 'executive', 'board', 'committee', 'มูลนิธิ', 'สมาชิก'
+  STRATEGY_AND_DEVELOPMENT: [
+    'ยุทธศาสตร์', 'แผนยุทธศาสตร์', 'พัฒนาระบบราชการ', 'พัฒนาภาครัฐ',
+    'กลยุทธ์', 'แผนปฏิบัติราชการ', 'พัฒนาองค์กร', 'ปรับปรุงโครงสร้าง',
+    'เพิ่มประสิทธิภาพการบริหาร', 'นโยบายการพัฒนา'
   ],
 
-  MISSION_AND_RESPONSIBILITIES: [
-    'ภารกิจ', 'mission', 'หน้าที่', 'รับผิดชอบ', 'ยุทธศาสตร์', 'strategic',
-    'กลยุทธ์', 'รัฐมนตรี', 'คณะรัฐมนตรี', 'cabinet',
-    'หน้าที่รับผิดชอบ', 'วิชาการ', 'ปรึกษา', 'advice', 'policy', 'นโยบาย'
+  PMQA: [
+    'PMQA', 'PMQA 4.0', 'หมวด PMQA', 'เกณฑ์การประเมิน', 'แบบประเมิน PMQA',
+    'รายงานผล PMQA', 'หลักฐานประกอบการประเมิน', 'คู่มือ PMQA',
+    'การประเมิน PMQA', 'คะแนน PMQA'
   ],
 
-  PUBLIC_SERVICES: [
-    'บริการ', 'ขั้นตอน', 'วิธี', 'ขอ', 'สมัคร', 'รางวัล', 'psea',
-    'ประเมิน', 'service', 'procedure', 'step', 'how to', 'apply',
-    'รับบริการ', 'ใช้บริการ', 'ขั้นตอนการ', 'process'
+  PERFORMANCE_AND_KPI: [
+    'KPI', 'ตัวชี้วัด', 'คำอธิบายตัวชี้วัด', 'เป้าหมาย', 'น้ำหนัก',
+    'สูตรการคำนวณ', 'เกณฑ์การให้คะแนน', 'ผลการดำเนินงาน',
+    'รายงานไตรมาส', 'รายงานประจำปี', 'ปีงบประมาณ', '2568', '2569', '2570'
   ],
 
-  GOVERNMENT_SERVICE_IMPROVEMENT: [
-    'ปรับปรุง', 'นวัตกรรม', 'ดิจิทัล', 'digital', 'innovation',
-    'ปรับปรุงการบริการ', 'service improvement', 'improve',
-    'ระบบราชการ', 'government system', 'public service',
-    'ราชการดิจิทัล', 'e-government', 'อิเล็กทรอนิกส์'
+  PROCESS_IMPROVEMENT: [
+    'ปรับปรุงกระบวนงาน', 'วิเคราะห์กระบวนงาน', 'ลดขั้นตอน',
+    'คู่มือปฏิบัติงาน', 'SOP', 'Work Manual', 'Flowchart',
+    'การปรับปรุงกระบวนงาน', 'ลดความซ้ำซ้อน'
   ],
 
-  LAWS_AND_REGULATIONS: [
-    'กฎหมาย', 'กฎระเบียบ', 'ระเบียบ', 'พ.ร.บ.', 'q&a', 'q&amp;a',
-    'ข้อบังคับ', 'law', 'regulation', 'legal',
-    'pdpa', 'คุ้มครองข้อมูลส่วนบุคคล'
+  RISK_MANAGEMENT: [
+    'บริหารความเสี่ยง', 'Risk Management', 'Risk Assessment', 'Risk Matrix',
+    'แผนบริหารความเสี่ยง', 'ติดตามความเสี่ยง', 'ประเมินความเสี่ยง',
+    'การจัดการความเสี่ยง', 'มาตรการลดความเสี่ยง'
   ],
 
-  MANUALS_AND_DOCUMENTS: [
-    'เอกสาร', 'pdf', 'คู่มือ', 'manual', 'document', 'ไฟล์',
-    'ดาวน์โหลด', 'download', 'รายงาน', 'report', 'newsletter',
-    'b-ready', 'bready', 'แนวทาง', 'guideline', 'instruction',
-    'รายละเอียด', 'spec', 'specification'
+  INTERNAL_CONTROL: [
+    'ควบคุมภายใน', 'Internal Control', 'ระบบควบคุมภายใน',
+    'หลักเกณฑ์ควบคุมภายใน', 'แบบประเมินควบคุมภายใน',
+    'รายงานควบคุมภายใน', 'การควบคุมภายในหน่วยงาน'
   ],
 
-  DOCUMENT_SEARCH: [
-    'ค้นหา', 'search', 'หา', 'ค้นหาเอกสาร', 'มีเอกสาร', 'มีข้อมูล',
-    'มีอะไร', 'สอบถาม', 'สืบค้น', 'lookup', 'find',
-    'มีอยู่ไหม', 'มีไหม', 'อยู่ที่ไหน'
+  KNOWLEDGE_MANAGEMENT: [
+    'KM', 'การจัดการความรู้', 'Knowledge Management', 'Knowledge Bank',
+    'ตู้สาระ', 'Information Cabinet', 'แผน KM', 'องค์ความรู้',
+    'คลังความรู้', 'ศูนย์ความรู้', 'คู่มือ KM', 'กิจกรรม KM'
   ],
 
-  CONTACT_AND_SUPPORT: [
-    'ติดต่อ', 'โทร', 'telephone', 'เบอร์', 'phone', 'อีเมล',
-    'email', 'ที่อยู่', 'address', 'facebook', 'youtube',
-    'fax', 'โทรสาร', 'สถานที่', 'แผนที่', 'อยู่ที่ไหน',
-    'contact', 'support', 'help'
+  SERVICE_SATISFACTION: [
+    'ความพึงพอใจ', 'Service Satisfaction', 'สำรวจความพึงพอใจ',
+    'แบบสอบถาม', 'ข้อเสนอแนะ', 'ปรับปรุงบริการ',
+    'ผลสำรวจ', 'รายงานผลสำรวจ', 'ผู้รับบริการ'
   ],
 
-  DIGITAL_GOVERNMENT: [
-    'ดิจิทัล', 'digital', 'อิเล็กทรอนิกส์', 'อีเมล',
-    'online', 'ออนไลน์', 'ระบบดิจิทัล', 'ระบบอิเล็กทรอนิกส์', 'digital government',
-    'gov digital', 'thailand digital', 'ดิจิทัลการปกครอง'
-  ],
-
-  PUBLIC_SECTOR_DEVELOPMENT: [
-    'พัฒนา', 'พัฒนาระบบ', 'ราชการ', 'public sector',
-    'พัฒนาภาครัฐ', 'development', 'ประเทศไทย', 'government',
-    'รัฐ', 'ราชการไทย', 'พัฒนาการ'
-  ],
-
-  FOLLOW_UP_QUESTION: [
-    'ต่อไป', 'ดังกล่าว', 'นั้น', 'เรื่องนั้น', 'เก่งไหม',
-    'เพิ่มเติม', 'อธิบายเพิ่ม', 'ละเอียด', 'อย่างเข้าใจ',
-    'ต่อ', 'ต่อไปไหน', 'ต่อไปซึ่ง'
+  DOCUMENTS_AND_PROJECTS: [
+    'คู่มือ', 'เอกสาร', 'โครงการพิเศษ', 'รายงานผล', 'แผนงาน',
+    'กฎหมาย', 'ระเบียบ', 'คำสั่ง', 'หนังสือเวียน', 'PDF',
+    'ดาวน์โหลดเอกสาร', 'สืบค้นเอกสาร'
   ],
 
   OUT_OF_SCOPE: [
-    'ทำนาย', 'ดูดวง', 'หวย', 'หวัง', 'เดิมพัน', 'บันเทิง',
-    'บิน', 'เที่ยวบิน', 'อากาศ', 'อากาศ', 'ภาษาอะไร',
-    'สุขภาพ', 'แพ้', 'ยา', 'ความสัมพันธ์', 'ชีวิต',
-    'เงิน', 'ทอง', 'หุ้น', 'ลงทุน', 'ธุรกิจ',
-    'เล่นเกม', 'เพลง', 'ภาพยะ', 'หนัง'
+    'ทำนาย', 'ดูดวง', 'หวย', 'เดิมพัน', 'บันเทิง', 'บิน',
+    'เที่ยวบิน', 'ภาษาอะไร', 'สุขภาพ', 'แพ้', 'ยา',
+    'ความสัมพันธ์', 'เงิน', 'ทอง', 'หุ้น', 'ลงทุน',
+    'เล่นเกม', 'เพลง', 'ภาพยนตร์', 'หนัง'
   ]
 };
 
 /**
  * คำนวณคะแนนสำหรับ intent โดยใช้ keyword matching
  *
- * @param {string} query - คำถามผู้ใช้ (ต่ำ่ำ)
- * @param {string[]} keywords - รายการคำหนาที่
+ * @param {string} query - คำถามผู้ใช้ (ต่ำคำ)
+ * @param {string[]} keywords - รายการคำสำคัญ
  * @returns {number} คะแนน (0 ถ้าไม่มี match)
  */
 function scoreIntent(query, keywords) {
@@ -144,7 +123,6 @@ function scoreIntent(query, keywords) {
   for (const kw of keywords) {
     const kwLower = kw.toLowerCase();
     if (query.includes(kwLower)) {
-      // คำหนาที่ที่ยากหรือเจาะจงได้คะแนนสูงกว่า
       const tokenLength = kwLower.replace(/[.\s]/g, '').length;
       score += tokenLength > 0 ? Math.max(4, Math.min(10, tokenLength)) : 5;
     }
@@ -154,7 +132,6 @@ function scoreIntent(query, keywords) {
 
 /**
  * ตรวจสอบว่าเป็นการถามต่อ (follow-up) หรือไม่
- * ใช้ heuristic ง่าย: คำถามสั้น ๆ ที่มีคำย่อยอ้างอิงถึงสิ่งที่พูดไปแล้ว
  *
  * @param {string} query - คำถามผู้ใช้
  * @param {Array} history - ประวัติการสนทนา
@@ -164,7 +141,7 @@ function isFollowUpQuestion(query, history) {
   if (!history || history.length < 2) return false;
 
   const shortQuery = query.trim().split(/[\s]+/).length <= 4;
-  const hasPronoun = /^(นั้น|นี้|มัน|เรา|คุณ|ต่อ|ต่อไป|เพิ่ม|ละเอียด|อธิบาย|อย่าง|เช่น|เช่นกับ|เหตุผล|ทำไม|อย่างไร)$/i.test(query.trim());
+  const hasPronoun = /^(นั้น|นี้|มัน|เรา|คุณ|ต่อ|ต่อไป|เพิ่ม|ละเอียด|อธิบาย|อย่าง|เช่น|เหตุผล|ทำไม|อย่างไร)$/i.test(query.trim());
 
   return shortQuery || hasPronoun;
 }
@@ -175,35 +152,31 @@ function isFollowUpQuestion(query, history) {
  * @param {string} userMessage - ข้อความผู้ใช้
  * @param {Array<{role: string, content: string}>} [conversationHistory] - ประวัติการสนทนา
  * @param {string} [detectedLanguage='th'] - ภาษาที่ตรวจจับได้
- * @returns {string} intent ที่ classification แล้ว (หนึ่งใน VALID_INTENTS)
+ * @returns {string} intent ที่ classification แล้ว
  *
  * @example
- * classifyIntent('สวัสดีครับ');  // 'GENERAL_GREETING'
- * classifyIntent('สปก. มีวิสัยทัศน์อะไร');  // 'ORGANIZATION_INFORMATION'
+ * classifyIntent('กลุ่มพัฒนาระบบบริหารมีหน้าที่อะไรบ้าง');  // 'ORGANIZATION_PROFILE'
+ * classifyIntent('PMQA 4.0 คืออะไร');  // 'PMQA'
  */
 function classifyIntent(userMessage, conversationHistory, detectedLanguage = 'th') {
-  // ตรวจสอบอินพุตพื้นฐาน
   if (!userMessage || typeof userMessage !== 'string' || !userMessage.trim()) {
     return 'INSUFFICIENT_INFORMATION';
   }
 
   const query = userMessage.toLowerCase().trim();
 
-  // ตรวจสอบว่าเป็นการถามต่อหรือไม่ (ใช้ประวัติการสนทนา)
   if (conversationHistory && isFollowUpQuestion(query, conversationHistory)) {
-    return 'FOLLOW_UP_QUESTION';
+    return 'INSUFFICIENT_INFORMATION';
   }
 
-  // คำนวณคะแนนสำหรับทุก intent
   const scores = {};
   for (const intent of VALID_INTENTS) {
-    if (intent === 'FOLLOW_UP_QUESTION' || intent === 'INSUFFICIENT_INFORMATION' || intent === 'OUT_OF_SCOPE') {
-      continue; // จัดการพิเศษ
+    if (intent === 'INSUFFICIENT_INFORMATION' || intent === 'OUT_OF_SCOPE') {
+      continue;
     }
     scores[intent] = scoreIntent(query, INTENT_KEYWORDS[intent] || []);
   }
 
-  // หา intent ที่ได้คะแนนสูงที่สุด
   let bestIntent = null;
   let maxScore = 0;
 
@@ -214,24 +187,19 @@ function classifyIntent(userMessage, conversationHistory, detectedLanguage = 'th
     }
   }
 
-  // หากมีคะแนนสูงพอถือได้ว่ามี match
   if (maxScore >= 4) {
     return bestIntent;
   }
 
-  // ตรวจสอบ OUT_OF_SCOPE
   const outOfScopeScore = scoreIntent(query, INTENT_KEYWORDS.OUT_OF_SCOPE || []);
   if (outOfScopeScore >= 4) {
     return 'OUT_OF_SCOPE';
   }
 
-  // หากไม่มี match ชัดเจน
-  // ใช้คำถามยาวหรือซับซ้อน = INSUFFICIENT_INFORMATION
-  // ใช้คำถามสั้นและไม่มีคำหนาที่ชัด = GENERAL_GREETING หรือ OUT_OF_SCOPE
   const tokenCount = query.split(/[\s]+/).filter(t => t.length > 0).length;
 
   if (tokenCount <= 2 && (query.includes('ใช่') || query.includes('ไหม') || query.includes('หรือ'))) {
-    return 'GENERAL_GREETING';
+    return 'INSUFFICIENT_INFORMATION';
   }
 
   return 'INSUFFICIENT_INFORMATION';
@@ -261,7 +229,6 @@ module.exports = {
   isValidIntent,
   getValidIntents,
   VALID_INTENTS,
-  // Export สำหรับการทดสอบ
   INTENT_KEYWORDS,
   scoreIntent,
   isFollowUpQuestion

@@ -125,7 +125,7 @@ function runTests() {
     try {
         const response1 = {
             answer: 'เราได้รับข้อมูลจากแหล่งข้อมูล...',
-            intent: 'ORGANIZATION_INFORMATION',
+            intent: 'ORGANIZATION_PROFILE',
             citations: []
         };
         const result1 = checkCitationRequirements(response1);
@@ -133,7 +133,7 @@ function runTests() {
 
         const response2 = {
             answer: 'ตามที่เราตรวจสอบแล้ว ข้อมูลจากแหล่งข้อมูล...',
-            intent: 'ORGANIZATION_INFORMATION',
+            intent: 'ORGANIZATION_PROFILE',
             citations: []
         };
         const result2 = checkCitationRequirements(response2);

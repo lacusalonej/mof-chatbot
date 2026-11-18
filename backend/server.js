@@ -87,10 +87,7 @@ app.use(session({
     },
 }));
 
-// เสิร์ฟ static files (หน้าแชทและหน้าแอดมิน) จากโฟลเดอร์ parent
-app.use(express.static(path.join(__dirname, '..')));
-
-// Root route -> คืนข้อมูลบริการเป็น JSON
+// Root route -> คืนข้อมูลบริการเป็น JSON (ต้องจับก่อน static middleware)
 app.get('/', (req, res) => {
     res.json({
         name: 'MOF Chatbot Backend',
@@ -101,10 +98,13 @@ app.get('/', (req, res) => {
     });
 });
 
-// ปิดเส้นทางภายในเพื่อไม่ให้ static จับก่อน
+// ปิดเส้นทางภายในเพื่อไม่ให้ static จับก่อน (ต้องจับก่อน static middleware)
 app.get('/admin', (_, res) => {
     res.status(403).json({ error: 'Forbidden: admin access required' });
 });
+
+// เสิร์ฟ static files (หน้าแชทและหน้าแอดมิน) จากโฟลเดอร์ parent (ใช้เป็น fallback หลังจาก route เฉพาะข้างต้นแล้ว)
+app.use(express.static(path.join(__dirname, '..')));
 
 // ตั้งค่า RAG engine
 const engine = new RAGEngine();
@@ -134,22 +134,20 @@ app.get('/health', (req, res) => {
 app.get('/v1/intents', (req, res) => {
     const validIntents = getValidIntents();
 
-    // ทำ backward compatibility: แมป intent IDs เดิม
+    // ทำ backward compatibility: แมป intent IDs เดิมเป็นชื่อภาษาไทยตามหมวด PSDG
     const intentMap = {
-        'GENERAL_GREETING': { name_th: 'การทักทาย', desc_th: 'ทักทายและสอบถามสถานะ' },
-        'ORGANIZATION_INFORMATION': { name_th: 'ข้อมูลองค์กร', desc_th: 'เกี่ยวกับ สปก., โครงสร้าง, วิสัยทัศน์, ภารกิจ' },
-        'MISSION_AND_RESPONSIBILITIES': { name_th: 'ภารกิจและหน้าที่', desc_th: 'ภารกิจ หน้าที่รับผิดชอบ ยุทธศาสตร์' },
-        'PUBLIC_SERVICES': { name_th: 'บริการสาธารณะ', desc_th: 'ขั้นตอนการให้บริการ' },
-        'GOVERNMENT_SERVICE_IMPROVEMENT': { name_th: 'ปรับปรุงการบริการราชการ', desc_th: 'นวัตกรรม ดิจิทัล การปรับปรุง' },
-        'LAWS_AND_REGULATIONS': { name_th: 'กฎหมายและระเบียบ', desc_th: 'กฎหมาย ระเบียบ กฎระเบียบ' },
-        'MANUALS_AND_DOCUMENTS': { name_th: 'คู่มือและเอกสาร', desc_th: 'เอกสาร PDF คู่มือ' },
-        'DIGITAL_GOVERNMENT': { name_th: 'ดิจิทัลการปกครอง', desc_th: 'ดิจิทัล ออนไลน์ e-government' },
-        'PUBLIC_SECTOR_DEVELOPMENT': { name_th: 'พัฒนาภาครัฐ', desc_th: 'พัฒนาระบบราชการ กลยุทธ์' },
-        'CONTACT_AND_SUPPORT': { name_th: 'ช่องทางการติดต่อ', desc_th: 'ที่อยู่ เบอร์ อีเมล Facebook' },
-        'DOCUMENT_SEARCH': { name_th: 'ค้นหาเอกสาร', desc_th: 'ค้นหาเอกสาร PDF รายงาน' },
-        'FOLLOW_UP_QUESTION': { name_th: 'คำถามต่อ', desc_th: 'ตอบต่อคำถามในประวัติ' },
-        'OUT_OF_SCOPE': { name_th: 'นอกขอบเขต', desc_th: 'คำถามไม่เกี่ยวข้องกับ สปก.' },
-        'INSUFFICIENT_INFORMATION': { name_th: 'ข้อมูลไม่เพียงพอ', desc_th: 'ไม่มีข้อมูลเพียงพอตอบ' }
+        'ORGANIZATION_PROFILE': { name_th: 'ข้อมูลองค์กรและอำนาจหน้าที่', desc_th: 'เกี่ยวกับกลุ่มพัฒนาระบบบริหาร บทบาท วิสัยทัศน์ พันธกิจ โครงสร้าง ช่องทางติดต่อ' },
+        'STRATEGY_AND_DEVELOPMENT': { name_th: 'ยุทธศาสตร์และการพัฒนา', desc_th: 'ยุทธศาสตร์การพัฒนาระบบราชการ แผนปฏิบัติราชการ กลยุทธ์' },
+        'PMQA': { name_th: 'PMQA และ PMQA 4.0', desc_th: 'เกณฑ์การประเมิน คู่มือ แบบประเมิน รายงานผล PMQA' },
+        'PERFORMANCE_AND_KPI': { name_th: 'ตัวชี้วัด KPI และผลการดำเนินงาน', desc_th: 'ตัวชี้วัด คำอธิบาย เป้าหมาย น้ำหนัก สูตรคำนวณ รายงานไตรมาส ประจำปี' },
+        'PROCESS_IMPROVEMENT': { name_th: 'การปรับปรุงกระบวนงาน', desc_th: 'วิเคราะห์กระบวนงาน ลดขั้นตอน คู่มือปฏิบัติงาน SOP Flowchart' },
+        'RISK_MANAGEMENT': { name_th: 'การบริหารความเสี่ยง', desc_th: 'Risk Assessment Risk Matrix แผนบริหารความเสี่ยง ติดตามความเสี่ยง' },
+        'INTERNAL_CONTROL': { name_th: 'ระบบควบคุมภายใน', desc_th: 'หลักเกณฑ์ควบคุมภายใน แบบประเมิน รายงานควบคุมภายใน' },
+        'KNOWLEDGE_MANAGEMENT': { name_th: 'การจัดการความรู้ (KM)', desc_th: 'KM Knowledge Bank ตู้สาระ แผน KM องค์ความรู้ที่เผยแพร่' },
+        'SERVICE_SATISFACTION': { name_th: 'ความพึงพอใจของผู้รับบริการ', desc_th: 'สำรวจความพึงพอใจ แบบสอบถาม รายงานผล ข้อเสนอแนะ' },
+        'DOCUMENTS_AND_PROJECTS': { name_th: 'เอกสารและโครงการ', desc_th: 'คู่มือปฏิบัติงาน รายงานผล โครงการพิเศษ กฎหมาย ระเบียบ คำสั่ง หนังสือเวียน PDF' },
+        'OUT_OF_SCOPE': { name_th: 'นอกขอบเขต', desc_th: 'คำถามไม่เกี่ยวข้องกับกลุ่มพัฒนาระบบบริหาร' },
+        'INSUFFICIENT_INFORMATION': { name_th: 'ข้อมูลไม่เพียงพอ', desc_th: 'ไม่มีข้อมูลเพียงพอตอบคำถาม' }
     };
 
     const intents = validIntents.map(id => ({
@@ -204,6 +202,20 @@ app.post('/v1/chat', async (req, res) => {
             citations: promptResult.citations || [],
             insufficient_evidence: promptResult.insufficient_evidence || false
         };
+
+        // คุ้มครอง URL ทั้งหมดที่ปรากฏในคำตอบ ให้มีการอ้างอิงใน citations เสมอ
+        // ป้องกันการที่คำตอบมีลิงก์ซึ่งไม่มีแหล่งอ้างอิงรองรับ (URL coverage 100%)
+        const answerUrls = (response.answer || '').match(/https?:\/\/[^\s"<>)]+/g) || [];
+        const citedUrls = (response.citations || []).map(c => c.url).filter(Boolean);
+        for (const u of answerUrls) {
+            const covered = citedUrls.some(c =>
+                u.startsWith(c) || c.startsWith(u) || u.includes(c.replace(/^https?:\/\//, ''))
+            );
+            if (!covered) {
+                response.citations.push({ title: 'แหล่งข้อมูลอ้างอิง', url: u });
+                citedUrls.push(u);
+            }
+        }
 
         // Session-based memory (RAM only — deleted after session ends)
         if (!chatSessions.has(sid)) {

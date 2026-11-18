@@ -29,7 +29,7 @@ function runTests() {
     try {
         const result = validateAnswer({
             answer: '',
-            intent: 'ORGANIZATION_INFORMATION',
+            intent: 'ORGANIZATION_PROFILE',
             citations: [],
             retrievedDocuments: mockDocs,
             contextInfo: { hasEvidence: true }
@@ -100,7 +100,7 @@ function runTests() {
     try {
         const result = validateAnswer({
             answer: 'นี่คือคำตอบ',
-            intent: 'ORGANIZATION_INFORMATION',
+            intent: 'ORGANIZATION_PROFILE',
             citations: [],
             retrievedDocuments: [],
             contextInfo: { hasEvidence: false }
@@ -115,21 +115,21 @@ function runTests() {
         failed++;
     }
 
-    // ทดสอป์ 6: ไม่ตั้ง insufficientEvidence สำหรับ GENERAL_GREETING
+    // ทดสอป์ 6: ไม่ตั้ง insufficientEvidence เมื่อมีหลักฐาน
     try {
         const result = validateAnswer({
-            answer: 'สวัสดีครับ',
-            intent: 'GENERAL_GREETING',
+            answer: 'นี่คือคำตอบ',
+            intent: 'ORGANIZATION_PROFILE',
             citations: [],
             retrievedDocuments: [],
-            contextInfo: { hasEvidence: false }
+            contextInfo: { hasEvidence: true }
         });
 
-        assert.strictEqual(result.insufficientEvidence, false, 'ไม่ควรมี insufficientEvidence สำหรับ greeting');
-        console.log(`  ✅ ไม่ตั้ง insufficientEvidence สำหรับ greeting`);
+        assert.strictEqual(result.insufficientEvidence, false, 'ไม่ควรมี insufficientEvidence เมื่อมีหลักฐาน');
+        console.log(`  ✅ ไม่ตั้ง insufficientEvidence เมื่อมีหลักฐาน`);
         passed++;
     } catch (err) {
-        console.log(`  ❌ ไม่ตั้ง insufficientEvidence สำหรับ greeting: ${err.message}`);
+        console.log(`  ❌ ไม่ตั้ง insufficientEvidence เมื่อมีหลักฐาน: ${err.message}`);
         failed++;
     }
 
@@ -155,7 +155,7 @@ function runTests() {
     try {
         const result = validateAnswer({
             answer: 'นี่คือคำตอบ',
-            intent: 'ORGANIZATION_INFORMATION',
+            intent: 'ORGANIZATION_PROFILE',
             citations: [{ title: 'เอกสารไม่มีอยู่' }],
             retrievedDocuments: mockDocs,
             contextInfo: { hasEvidence: true }
@@ -173,7 +173,7 @@ function runTests() {
     try {
         const result = validateAnswer({
             answer: 'นี่คือคำตอบ',
-            intent: 'ORGANIZATION_INFORMATION',
+            intent: 'ORGANIZATION_PROFILE',
             citations: [],
             retrievedDocuments: [],
             contextInfo: { hasEvidence: true, hasConflicts: true }
@@ -205,7 +205,7 @@ function runTests() {
     try {
         const result = validateAnswer({
             answer: 'นี่คือคำตอบ',
-            intent: 'ORGANIZATION_INFORMATION',
+            intent: 'ORGANIZATION_PROFILE',
             citations: [],
             retrievedDocuments: [],
             contextInfo: { hasEvidence: true, hasOutdated: true }

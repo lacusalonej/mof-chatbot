@@ -1,6 +1,6 @@
 /**
  * ทดสอบ IntentClassifier
- * ครอบคลุมทุกหมวดหมู่ที่รองรับ (14 intents)
+ * ครอบคลุมทุกหมวดหมู่ที่รองรับ (12 intents ตามข้อกำหนด PSDG)
  */
 
 'use strict';
@@ -8,67 +8,92 @@
 const assert = require('assert');
 const { classifyIntent, isValidIntent, getValidIntents } = require('../intentClassifier');
 
-// ทดสอบ 14 intent หลัก
+// ทดสอบ 12 intent หลักตามข้อกำหนด PSDG
 const intentTests = [
     {
-        name: 'GENERAL_GREETING',
-        message: 'สวัสดีครับ',
-        expected: 'GENERAL_GREETING'
+        name: 'ORGANIZATION_PROFILE',
+        message: 'กลุ่มพัฒนาระบบบริหารมีหน้าที่อะไรบ้าง',
+        expected: 'ORGANIZATION_PROFILE'
     },
     {
-        name: 'ORGANIZATION_INFORMATION',
-        message: 'สปก. คืออะไร',
-        expected: 'ORGANIZATION_INFORMATION'
-    },
-    {
-        name: 'ORGANIZATION_INFORMATION (วิสัยทัศน์)',
+        name: 'ORGANIZATION_PROFILE (วิสัยทัศน์)',
         message: 'มีวิสัยทัศน์อะไรบ้าง',
-        expected: 'ORGANIZATION_INFORMATION'
+        expected: 'ORGANIZATION_PROFILE'
     },
     {
-        name: 'MISSION_AND_RESPONSIBILITIES',
-        message: 'ภารกิจของ สปก. มีอะไร',
-        expected: 'MISSION_AND_RESPONSIBILITIES'
+        name: 'ORGANIZATION_PROFILE (กพร.)',
+        message: 'กพร. คืออะไร',
+        expected: 'ORGANIZATION_PROFILE'
     },
     {
-        name: 'PUBLIC_SERVICES',
-        message: 'มีบริการอะไรบ้าง',
-        expected: 'PUBLIC_SERVICES'
+        name: 'STRATEGY_AND_DEVELOPMENT',
+        message: 'ยุทธศาสตร์การพัฒนาระบบราชการมีอะไรบ้าง',
+        expected: 'STRATEGY_AND_DEVELOPMENT'
     },
     {
-        name: 'GOVERNMENT_SERVICE_IMPROVEMENT',
-        message: 'มีนวัตกรรมดิจิทัลไหม',
-        expected: 'GOVERNMENT_SERVICE_IMPROVEMENT'
+        name: 'STRATEGY_AND_DEVELOPMENT (แผน)',
+        message: 'แผนปฏิบัติราชการปี 2569',
+        expected: 'STRATEGY_AND_DEVELOPMENT'
     },
     {
-        name: 'LAWS_AND_REGULATIONS',
-        message: 'มีกฎหมายเกี่ยวกับ PDPA ไหม',
-        expected: 'LAWS_AND_REGULATIONS'
+        name: 'PMQA',
+        message: 'PMQA 4.0 คืออะไร',
+        expected: 'PMQA'
     },
     {
-        name: 'MANUALS_AND_DOCUMENTS',
-        message: 'มีเอกสาร PDF ไหมให้ดาวน์โหลด',
-        expected: 'MANUALS_AND_DOCUMENTS'
+        name: 'PMQA (เกณฑ์)',
+        message: 'เกณฑ์การประเมิน PMQA มีอะไรบ้าง',
+        expected: 'PMQA'
     },
     {
-        name: 'DIGITAL_GOVERNMENT',
-        message: 'มีระบบดิจิทัลอะไรบ้าง',
-        expected: 'DIGITAL_GOVERNMENT'
+        name: 'PERFORMANCE_AND_KPI',
+        message: 'KPI ปี 2569 มีอะไรบ้าง',
+        expected: 'PERFORMANCE_AND_KPI'
     },
     {
-        name: 'PUBLIC_SECTOR_DEVELOPMENT',
-        message: 'พัฒนาภาครัฐทำอย่างไร',
-        expected: 'PUBLIC_SECTOR_DEVELOPMENT'
+        name: 'PERFORMANCE_AND_KPI (ตัวชี้วัด)',
+        message: 'ตัวชี้วัดความสำเร็จมีอะไรบ้าง',
+        expected: 'PERFORMANCE_AND_KPI'
     },
     {
-        name: 'CONTACT_AND_SUPPORT',
-        message: 'ติดต่อ สปก. ได้ที่ไหน',
-        expected: 'CONTACT_AND_SUPPORT'
+        name: 'PROCESS_IMPROVEMENT',
+        message: 'คู่มือปฏิบัติงาน SOP มีอะไรบ้าง',
+        expected: 'PROCESS_IMPROVEMENT'
     },
     {
-        name: 'DOCUMENT_SEARCH',
-        message: 'ค้นหาเอกสาร B-READY',
-        expected: 'DOCUMENT_SEARCH'
+        name: 'PROCESS_IMPROVEMENT (ลดขั้นตอน)',
+        message: 'ปรับปรุงกระบวนงานลดขั้นตอน',
+        expected: 'PROCESS_IMPROVEMENT'
+    },
+    {
+        name: 'RISK_MANAGEMENT',
+        message: 'Risk Matrix การบริหารความเสี่ยง',
+        expected: 'RISK_MANAGEMENT'
+    },
+    {
+        name: 'RISK_MANAGEMENT (แผน)',
+        message: 'แผนบริหารความเสี่ยงปี 2569',
+        expected: 'RISK_MANAGEMENT'
+    },
+    {
+        name: 'INTERNAL_CONTROL',
+        message: 'ระบบควบคุมภายใน มีเกณฑ์อะไรบ้าง',
+        expected: 'INTERNAL_CONTROL'
+    },
+    {
+        name: 'KNOWLEDGE_MANAGEMENT',
+        message: 'การจัดการความรู้ KM Knowledge Bank',
+        expected: 'KNOWLEDGE_MANAGEMENT'
+    },
+    {
+        name: 'SERVICE_SATISFACTION',
+        message: 'สำรวจความพึงพอใจผู้รับบริการ',
+        expected: 'SERVICE_SATISFACTION'
+    },
+    {
+        name: 'DOCUMENTS_AND_PROJECTS',
+        message: 'เอกสาร คู่มือ รายงานราชการ PDF',
+        expected: 'DOCUMENTS_AND_PROJECTS'
     },
     {
         name: 'OUT_OF_SCOPE',
@@ -79,11 +104,6 @@ const intentTests = [
         name: 'INSUFFICIENT_INFORMATION',
         message: 'x9k2j3',
         expected: 'INSUFFICIENT_INFORMATION'
-    },
-    {
-        name: 'FOLLOW_UP_QUESTION (สั้น+pronoun)',
-        message: 'เรื่องนั้นเป็นยังไงบ้าง',
-        expected: 'FOLLOW_UP_QUESTION'
     }
 ];
 
@@ -93,15 +113,10 @@ function runTests() {
 
     console.log('=== ทดสอบ IntentClassifier ===\n');
 
-    // ทดสอบ 14 intent หลัก
+    // ทดสอบ 12 intent หลัก
     for (const test of intentTests) {
         try {
-            // เติมประวัติการสนทนาสำหรับ FOLLOW_UP_QUESTION
-            const history = test.expected === 'FOLLOW_UP_QUESTION'
-                ? [{ role: 'user', content: 'สปก. มีหน้าที่อะไร' }, { role: 'assistant', content: 'มีหลายหน้าที่' }]
-                : [];
-
-            const result = classifyIntent(test.message, history, 'th');
+            const result = classifyIntent(test.message, [], 'th');
             assert.strictEqual(result, test.expected,
                 `Expected: ${test.expected}, Got: ${result}, Message: "${test.message}"`);
             console.log(`  ✅ ${test.name}: "${test.message}" -> ${result}`);
@@ -114,9 +129,9 @@ function runTests() {
 
     // ทดสอบภาษาอังกฤษ
     try {
-        const result = classifyIntent('What is MOF?', [], 'en');
-        assert.strictEqual(result, 'ORGANIZATION_INFORMATION');
-        console.log(`  ✅ English classification: "What is MOF?" -> ${result}`);
+        const result = classifyIntent('What is PSDG?', [], 'en');
+        assert.strictEqual(result, 'ORGANIZATION_PROFILE');
+        console.log(`  ✅ English classification: "What is PSDG?" -> ${result}`);
         passed++;
     } catch (err) {
         console.log(`  ❌ English classification: ${err.message}`);
@@ -156,9 +171,10 @@ function runTests() {
 
     // ทดสอบ isValidIntent
     try {
-        assert.strictEqual(isValidIntent('GENERAL_GREETING'), true);
+        assert.strictEqual(isValidIntent('ORGANIZATION_PROFILE'), true);
         assert.strictEqual(isValidIntent('INVALID_INTENT'), false);
         assert.strictEqual(isValidIntent(null), false);
+        assert.strictEqual(isValidIntent('GENERAL_GREETING'), false);
         console.log(`  ✅ isValidIntent validation works`);
         passed++;
     } catch (err) {
@@ -169,7 +185,11 @@ function runTests() {
     // ทดสอบ getValidIntents
     try {
         const intents = getValidIntents();
-        assert.strictEqual(intents.length, 14);
+        assert.strictEqual(intents.length, 12);
+        assert.ok(intents.includes('ORGANIZATION_PROFILE'));
+        assert.ok(intents.includes('PMQA'));
+        assert.ok(intents.includes('OUT_OF_SCOPE'));
+        assert.ok(intents.includes('INSUFFICIENT_INFORMATION'));
         console.log(`  ✅ getValidIntents returns ${intents.length} intents`);
         passed++;
     } catch (err) {

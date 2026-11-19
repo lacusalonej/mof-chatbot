@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOF PSDG AI Chatbot — ผู้ช่วยตอบคำถามกลุ่มพัฒนาระบบบริหาร</title>
+    <meta name="description" content="ระบบ AI Assistant สำหรับตอบคำถามเกี่ยวกับกลุ่มพัฒนาระบบบริหาร กระทรวงการคลัง">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="chat-header">
+        <div class="container header-content">
+            <div class="logo-area">
+                <div class="logo-placeholder">[ตราราชการ]</div>
+                <div class="org-info">
+                    <h1 class="chatbot-title">MOF PSDG AI Chatbot</h1>
+                    <p class="chatbot-subtitle">ผู้ช่วยตอบคำถาม<br>กลุ่มพัฒนาระบบบริหาร กระทรวงการคลัง</p>
+                </div>
+            </div>
+            <div class="status-indicator" id="systemStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">ระบบพร้อมใช้งาน</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Welcome / Info Section (แสดงเมื่อยังไม่เริ่มสนทนา) -->
+        <section id="welcomeSection" class="welcome-section">
+            <div class="welcome-card">
+                <h2>สวัสดีค่ะ</h2>
+                <p class="welcome-message">
+                    ยินดีต้อนรับสู่ผู้ช่วยตอบคำถามกลุ่มพัฒนาระบบบริหาร กระทรวงการคลัง<br><br>
+                    ท่านสามารถสอบถามข้อมูลเกี่ยวกับภารกิจของหน่วยงาน การพัฒนาระบบราชการ
+                    การบริหารจัดการภาครัฐ PMQA การติดตามประเมินผล และข้อมูลที่เกี่ยวข้องได้ค่ะ
+                </p>
+
+                <div class="example-questions">
+                    <h3>ตัวอย่างคำถาม</h3>
+                    <ul>
+                        <li class="example-q" onclick="fillQuestion('ภารกิจของกลุ่มพัฒนาระบบบริหารคืออะไร')">ภารกิจของกลุ่มพัฒนาระบบบริหารคืออะไร</li>
+                        <li class="example-q" onclick="fillQuestion('PMQA คืออะไรและมีประโยชน์อย่างไร')">PMQA คืออะไรและมีประโยชน์อย่างไร</li>
+                        <li class="example-q" onclick="fillQuestion('ระบบราชการ 4.0 คืออะไร')">ระบบราชการ 4.0 คืออะไร</li>
+                        <li class="example-q" onclick="fillQuestion('ข้อมูลติดต่อของหน่วยงาน')">ข้อมูลติดต่อของหน่วยงาน</li>
+                    </ul>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="startChatBtn">เริ่มต้นสนทนา</button>
+                    <button class="btn btn-secondary" id="newChatBtn" style="display:none;">เริ่มบทสนทนาใหม่</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chat Area (ซ่อนเมื่อยังไม่เริ่มสนทนา) -->
+        <section id="chatArea" class="chat-area" style="display:none;">
+            <!-- Messages Container -->
+            <div class="messages-container" id="messagesContainer">
+                <!-- ข้อความจะแสดงที่นี่ -->
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <div class="input-wrapper">
+                    <textarea
+                        id="messageInput"
+                        rows="1"
+                        placeholder="พิมพ์คำถามของท่านที่นี่..."
+                        maxlength="1000"
+                        spellcheck="true"
+                    ></textarea>
+                    <button id="sendBtn" class="send-btn" disabled>ส่ง</button>
+                </div>
+                <div class="input-hints">
+                    <span class="hint">กด Enter เพื่อส่ง | Shift+Enter เพื่อขึ้นบรรทัดใหม่</span>
+                    <button class="btn btn-outline btn-small" id="copyBtn" style="display:none;">คัดลอกคำตอบล่าสุด</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Citation / Sources Panel -->
+    <section id="citationPanel" class="citation-panel" style="display:none;">
+        <div class="citation-header">
+            <h3>แหล่งอ้างอิง</h3>
+            <button class="btn btn-outline btn-small" onclick="toggleCitationPanel()">ปิด</button>
+        </div>
+        <div class="citation-list" id="citationList">
+            <!-- แหล่งอ้างอิงจะแสดงที่นี่ -->
+        </div>
+    </section>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="src/services/api.js"></script>
+    <script src="src/components/chat-interface.js"></script>
+</body>
+</html>

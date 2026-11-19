@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — MOF PSDG AI Chatbot</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="../styles/admin.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo-placeholder">[ตราราชการ]</div>
+            <div class="brand-name">MOF PSDG Admin</div>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="nav-item active" data-section="dashboard" onclick="switchSection('dashboard')">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">ภาพรวมระบบ</span>
+            </button>
+            <button class="nav-item" data-section="documents" onclick="switchSection('documents')">
+                <span class="nav-icon">📄</span>
+                <span class="nav-label">จัดการเอกสาร</span>
+            </button>
+            <button class="nav-item" data-section="websites" onclick="switchSection('websites')">
+                <span class="nav-icon">🌐</span>
+                <span class="nav-label">แหล่งข้อมูลเว็บไซต์</span>
+            </button>
+            <button class="nav-item" data-section="faq" onclick="switchSection('faq')">
+                <span class="nav-icon">❓</span>
+                <span class="nav-label">จัดการคำถามที่พบบ่อย</span>
+            </button>
+            <button class="nav-item" data-section="conversations" onclick="switchSection('conversations')">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">บทสนทนา</span>
+            </button>
+            <button class="nav-item" data-section="ai-config" onclick="switchSection('ai-config')">
+                <span class="nav-icon">🤖</span>
+                <span class="nav-label">กำหนดค่า AI</span>
+            </button>
+            <button class="nav-item" data-section="users" onclick="switchSection('users')">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">จัดการผู้ใช้</span>
+            </button>
+            <button class="nav-item" data-section="trial-links" onclick="switchSection('trial-links')">
+                <span class="nav-icon">🔗</span>
+                <span class="nav-label">ลิงก์ทดลองใช้งาน</span>
+            </button>
+            <button class="nav-item" data-section="audit-logs" onclick="switchSection('audit-logs')">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">ประวัติการใช้งาน</span>
+            </button>
+            <div class="nav-spacer"></div>
+            <button class="nav-item nav-logout" onclick="logout()">
+                <span class="nav-icon">🚪</span>
+                <span class="nav-label">ออกจากระบบ</span>
+            </button>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">☰</button>
+            <div class="top-bar-title">ภาพรวมระบบ</div>
+            <div class="top-bar-right">
+                <span class="user-info" id="currentUser">ผู้ดูแลระบบ</span>
+                <button class="btn btn-outline btn-small" onclick="refreshData()">รีเฟรช</button>
+            </div>
+        </header>
+
+        <!-- Dashboard Sections -->
+        <div class="dashboard-container">
+
+            <!-- Section: Dashboard -->
+            <section id="section-dashboard" class="dashboard-section active">
+                <div class="page-header">
+                    <h1>ภาพรวมระบบ</h1>
+                    <p>สถานะและสถิติของระบบ AI Chatbot</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statDocCount">-</div>
+                        <div class="stat-label">จำนวนเอกสาร</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statActiveDoc">-</div>
+                        <div class="stat-label">เอกสารที่ใช้งาน</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statPendingDoc">-</div>
+                        <div class="stat-label">รอประมวลผล</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statErrorDoc">-</div>
+                        <div class="stat-label">ประมวลผลผิดพลาด</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statChatCount">-</div>
+                        <div class="stat-label">จำนวนคำถาม</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statSessionCount">-</div>
+                        <div class="stat-label">จำนวน Session</div>
+                    </div>
+                </div>
+
+                <div class="grid-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>คำถามยอดนิยม</h3>
+                        </div>
+                        <div class="card-body" id="popularQuestions">
+                            <p class="text-muted">กำลังโหลดข้อมูล...</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>คำถามที่ตอบไม่ได้</h3>
+                        </div>
+                        <div class="card-body" id="unansweredQuestions">
+                            <p class="text-muted">กำลังโหลดข้อมูล...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>สถานะระบบ</h3>
+                        </div>
+                        <div class="card-body" id="systemStatusDetail">
+                            <div class="status-item">
+                                <span>AI Provider</span>
+                                <span class="status-badge status-ok">ปกติ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>ฐานข้อมูล</span>
+                                <span class="status-badge status-ok">ปกติ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>ฐานความรู้</span>
+                                <span class="status-badge status-warning">ยังไม่มีข้อมูล</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Documents -->
+            <section id="section-documents" class="dashboard-section">
+                <div class="page-header">
+                    <h1>จัดการเอกสาร</h1>
+                    <p>อัปโหลด แก้ไข และจัดการเอกสารในฐานความรู้</p>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showUploadModal()">+ อัปโหลดเอกสารใหม่</button>
+                    <div class="search-box">
+                        <input type="text" id="docSearch" placeholder="ค้นหาเอกสาร..." onkeyup="filterDocuments()">
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ชื่อเอกสาร</th>
+                                <th>หมวดหมู่</th>
+                                <th>ประเภทไฟล์</th>
+                                <th>การจำแนก</th>
+                                <th>สถานะ</th>
+                                <th>วันที่นำเข้า</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="documentsTableBody">
+                            <tr><td colspan="7" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section: Websites -->
+            <section id="section-websites" class="dashboard-section">
+                <div class="page-header">
+                    <h1>แหล่งข้อมูลเว็บไซต์</h1>
+                    <p>จัดการ URL ที่อนุญาตให้ดึงข้อมูลเข้าฐานความรู้</p>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showWebsiteModal()">+ เพิ่มเว็บไซต์</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>URL</th>
+                                <td>โดเมน</td>
+                                <td>สถานะการอนุญาต</td>
+                                <td>สถานะการ Crawl</td>
+                                <td>หน้าเว็บ</td>
+                                <td>การดำเนินการ</td>
+                            </tr>
+                        </thead>
+                        <tbody id="websitesTableBody">
+                            <tr><td colspan="6" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section: FAQ -->
+            <section id="section-faq" class="dashboard-section">
+                <div class="page-header">
+                    <h1>จัดการคำถามที่พบบ่อย</h1>
+                    <p>เพิ่ม แก้ไข และลบคำถามที่พบบ่อย</p>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showFAQModal()">+ เพิ่มคำถามใหม่</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>คำถาม</th>
+                                <th>หมวดหมู่</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="faqTableBody">
+                            <tr><td colspan="3" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section: Conversations -->
+            <section id="section-conversations" class="dashboard-section">
+                <div class="page-header">
+                    <h1>บทสนทนา</h1>
+                    <p>ตรวจสอบบทสนทนาและแหล่งอ้างอิงที่ AI ใช้ตอบ</p>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Session ID</th>
+                                <th>ประเภทผู้ใช้</th>
+                                <th>ข้อความล่าสุด</th>
+                                <th>เวลา</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="conversationsTableBody">
+                            <tr><td colspan="5" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section: AI Config -->
+            <section id="section-ai-config" class="dashboard-section">
+                <div class="page-header">
+                    <h1>กำหนดค่า AI</h1>
+                    <p>ตั้งค่าผู้ให้บริการ AI โมเดล และพารามิเตอร์</p>
+                </div>
+
+                <form class="config-form" id="aiConfigForm">
+                    <div class="form-group">
+                        <label>AI Provider</label>
+                        <select id="aiProvider" class="form-select">
+                            <option value="demo">Demo Mode (ไม่ใช้ AI จริง)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="ollama">Ollama (Local)</option>
+                        </select>
+                        <p class="form-hint">เลือกผู้ให้บริการ AI ที่ต้องการใช้งาน</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Model</label>
+                        <input type="text" id="aiModel" class="form-input" placeholder="เช่น gpt-3.5-turbo">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Temperature</label>
+                        <input type="range" id="aiTemperature" min="0" max="1" step="0.1" value="0.7">
+                        <span id="tempValue">0.7</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Maximum Tokens</label>
+                        <input type="number" id="aiMaxTokens" class="form-input" placeholder="เช่น 2000">
+                    </div>
+
+                    <div class="form-group">
+                        <label>System Prompt</label>
+                        <textarea id="aiSystemPrompt" class="form-textarea" rows="6" placeholder="คำแนะนำระบบสำหรับ AI"></textarea>
+                        <p class="form-hint">คำแนะนำที่ส่งให้ AI ก่อนเริ่มการสนทนา</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Fallback Message (ข้อความเมื่อไม่พบข้อมูล)</label>
+                        <textarea id="aiFallbackMessage" class="form-textarea" rows="3"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">บันทึกการตั้งค่า</button>
+                </form>
+            </section>
+
+            <!-- Section: Users -->
+            <section id="section-users" class="dashboard-section">
+                <div class="page-header">
+                    <h1>จัดการผู้ใช้</h1>
+                    <p>กำหนดสิทธิ์การเข้าถึงสำหรับผู้ดูแลระบบ</p>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ชื่อผู้ใช้</th>
+                                <th>อีเมล</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>สิทธิ์</th>
+                                <th>สถานะ</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr><td colspan="6" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section: Trial Links -->
+            <section id="section-trial-links" class="dashboard-section">
+                <div class="page-header">
+                    <h1>ลิงก์ทดลองใช้งาน</h1>
+                    <p>สร้างลิงก์สำหรับให้บุคคลอื่นทดลอง Chatbot</p>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showTrialLinkModal()">+ สร้างลิงก์ใหม่</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ชื่อลิงก์</th>
+                                <th>Token (สั้นๆ)</th>
+                                <th>วันหมดอายุ</th>
+                                <th>การใช้งาน</th>
+                                <th>สถานะ</th>
+                                <th>การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trialLinksTableBody">
+                            <tr><td colspan="6" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section: Audit Logs -->
+            <section id="section-audit-logs" class="dashboard-section">
+                <div class="page-header">
+                    <h1>ประวัติการใช้งาน</h1>
+                    <p>บันทึกการกระทำสำคัญในระบบ</p>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>การกระทำ</th>
+                                <th>ผู้ใช้</th>
+                                <th>รายละเอียด</th>
+                                <th>IP Address</th>
+                                <th>เวลา</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLogsTableBody">
+                            <tr><td colspan="5" class="text-center">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>อัปโหลดเอกสารใหม่</h3>
+                <button class="btn-close" onclick="closeModal('uploadModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label>เลือกไฟล์</label>
+                        <input type="file" id="uploadFile" accept=".pdf,.docx,.doc,.xlsx,.csv,.txt,.md,.html" required>
+                        <p class="form-hint">รองรับ: PDF, DOCX, DOC, XLSX, CSV, TXT, MD, HTML (ขนาดสูงสุด 16 MB)</p>
+                    </div>
+                    <div class="form-group">
+                        <label>ชื่อเอกสาร</label>
+                        <input type="text" id="docTitle" class="form-input" placeholder="ชื่อเอกสาร">
+                    </div>
+                    <div class="form-group">
+                        <label>หมวดหมู่</label>
+                        <select id="docCategory" class="form-select">
+                            <option value="">เลือกหมวดหมู่</option>
+                            <option value="ข้อมูลทั่วไปของหน่วยงาน">ข้อมูลทั่วไปของหน่วยงาน</option>
+                            <option value="อำนาจหน้าที่และภารกิจ">อำนาจหน้าที่และภารกิจ</option>
+                            <option value="โครงสร้างองค์กร">โครงสร้างองค์กร</option>
+                            <option value="การพัฒนาระบบราชการ">การพัฒนาระบบราชการ</option>
+                            <option value="แผนปฏิบัติราชการ">แผนปฏิบัติราชการ</option>
+                            <option value="คำรับรองการปฏิบัติราชการ">คำรับรองการปฏิบัติราชการ</option>
+                            <option value="ตัวชี้วัดและการประเมินผล">ตัวชี้วัดและการประเมินผล</option>
+                            <option value="PMQA">PMQA</option>
+                            <option value="ระบบราชการ 4.0">ระบบราชการ 4.0</option>
+                            <option value="การปรับปรุงโครงสร้างส่วนราชการ">การปรับปรุงโครงสร้างส่วนราชการ</option>
+                            <option value="การบริหารความเสี่ยง">การบริหารความเสี่ยง</option>
+                            <option value="การควบคุมภายใน">การควบคุมภายใน</option>
+                            <option value="การจัดการความรู้">การจัดการความรู้</option>
+                            <option value="การติดตามและรายงานผล">การติดตามและรายงานผล</option>
+                            <option value="คู่มือและแนวทางการปฏิบัติงาน">คู่มือและแนวทางการปฏิบัติงาน</option>
+                            <option value="คำถามที่พบบ่อย">คำถามที่พบบ่อย</option>
+                            <option value="ข่าวสารและประกาศ">ข่าวสารและประกาศ</option>
+                            <option value="ข้อมูลติดต่อและประสานงาน">ข้อมูลติดต่อและประสานงาน</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>การจำแนกความลับ</label>
+                        <select id="docClassification" class="form-select">
+                            <option value="PUBLIC">Public (เผยแพร่สาธารณะ)</option>
+                            <option value="INTERNAL">Internal (เฉพาะภายในหน่วยงาน)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">อัปโหลดและประมวลผล</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="websiteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>เพิ่มเว็บไซต์แหล่งข้อมูล</h3>
+                <button class="btn-close" onclick="closeModal('websiteModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="websiteForm">
+                    <div class="form-group">
+                        <label>URL ของเว็บไซต์</label>
+                        <input type="url" id="websiteUrl" class="form-input" placeholder="https://palad.mof.go.th/" required>
+                        <p class="form-hint">ต้องอยู่ใน domain ที่ได้รับการตรวจสอบแล้วเท่านั้น</p>
+                    </div>
+                    <div class="form-group">
+                        <label>ตรวจสอบข้อมูลใหม่ทุก (ชั่วโมง)</label>
+                        <input type="number" id="websiteInterval" class="form-input" value="24" min="1">
+                    </div>
+                    <button type="submit" class="btn btn-primary">เพิ่มเว็บไซต์</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="trialLinkModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>สร้างลิงก์ทดลองใช้งาน</h3>
+                <button class="btn-close" onclick="closeModal('trialLinkModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="trialLinkForm">
+                    <div class="form-group">
+                        <label>ชื่อลิงก์</label>
+                        <input type="text" id="trialName" class="form-input" placeholder="เช่น ลิงก์ทดลองสำหรับหน่วยงานภายนอก">
+                    </div>
+                    <div class="form-group">
+                        <label>วันหมดอายุ</label>
+                        <input type="date" id="trialExpiry" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>จำนวนการใช้งานสูงสุด</label>
+                        <input type="number" id="trialMaxUsages" class="form-input" value="100" min="1">
+                    </div>
+                    <button type="submit" class="btn btn-primary">สร้างลิงก์</button>
+                </form>
+                <div class="form-hint" style="margin-top:12px;">
+                    <strong>คำเตือน:</strong> การสร้างลิงก์ไม่ได้หมายความว่าระบบจะถูกเปิดเผยต่ออินเทอร์เน็ตโดยอัตโนมัติ
+                    ต้องมีขั้นตอน Deploy หรือ Tunnel แยกต่างหาก
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="faqModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>เพิ่มคำถามที่พบบ่อย</h3>
+                <button class="btn-close" onclick="closeModal('faqModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="faqForm">
+                    <div class="form-group">
+                        <label>คำถาม</label>
+                        <input type="text" id="faqQuestion" class="form-input" placeholder="คำถาม" required>
+                    </div>
+                    <div class="form-group">
+                        <label>คำตอบ</label>
+                        <textarea id="faqAnswer" class="form-textarea" rows="4" placeholder="คำตอบ" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>หมวดหมู่</label>
+                        <select id="faqCategory" class="form-select">
+                            <option value="ทั่วไป">ทั่วไป</option>
+                            <option value="ภารกิจ">ภารกิจ</option>
+                            <option value="ติดต่อ">ติดต่อ</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">เพิ่มคำถาม</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="websiteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>เพิ่มเว็บไซต์แหล่งข้อมูล</h3>
+                <button class="btn-close" onclick="closeModal('websiteModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="websiteForm">
+                    <div class="form-group">
+                        <label>URL ของเว็บไซต์</label>
+                        <input type="url" id="websiteUrl" class="form-input" placeholder="https://palad.mof.go.th/" required>
+                        <p class="form-hint">ต้องอยู่ใน domain ที่ได้รับการตรวจสอบแล้วเท่านั้น</p>
+                    </div>
+                    <div class="form-group">
+                        <label>ตรวจสอบข้อมูลใหม่ทุก (ชั่วโมง)</label>
+                        <input type="number" id="websiteInterval" class="form-input" value="24" min="1">
+                    </div>
+                    <button type="submit" class="btn btn-primary">เพิ่มเว็บไซต์</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../src/services/api.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

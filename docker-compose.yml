@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+    environment:
+      - APP_NAME=MOF PSDG AI Chatbot
+      - BACKEND_HOST=0.0.0.0
+      - BACKEND_PORT=8000
+      - DATABASE_URL=sqlite:///./data/app.db
+      - AI_PROVIDER=demo
+      - CHROMA_PERSIST_DIRECTORY=./data/chroma
+      - UPLOAD_DIRECTORY=./uploads
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  data:
+  uploads:

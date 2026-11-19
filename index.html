@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แชทบอท สปก. (MOF)</title>
+
+    <!-- ใช้ Google Fonts Thai -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0066cc;
+            --bg: #ffffff;
+            --text: #333333;
+            --send-btn: #0066cc;
+            --send-btn-hover: #0052a3;
+            --bot-msg: #f0f0f0;
+            --user-msg: #e3f2fd;
+            --error: #ff6b6b;
+            --border: #e0e0e0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans Thai', system-ui, sans-serif;
+            background-color: rgb(255, 255, 255);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            max-height: 80vh;
+        }
+
+        .chat-header {
+            background-color: rgb(255, 255, 255);
+            color: #6e94c5;
+            padding: 12px 16px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .chat-header svg { width: 20px; height: 20px; }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message-bot, .message-user, .message-error {
+            padding: 10px 14px;
+            border-radius: 18px;
+            max-width: 80%;
+            font-size: 14px;
+            line-height: 1.6;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message-bot {
+            background-color: var(--bot-msg);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-user {
+            background-color: var(--user-msg);
+            color: var(--primary);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-error {
+            background: #fff3f3;
+            color: var(--error);
+            align-self: center;
+            border: 1px dashed var(--error);
+            border-radius: 8px;
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+            color: #999;
+            padding: 4px 0;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #999;
+            border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: -0.28s; }
+        .typing-dot:nth-child(3) { animation-delay: -0.56s; }
+
+        .chat-input-area {
+            display: flex;
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            gap: 8px;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            resize: none;
+        }
+
+        #userInput:focus { border-color: var(--primary); }
+
+        #sendBtn {
+            background-color: var(--send-btn);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        #sendBtn:hover:not(:disabled) { background-color: var(--send-btn-hover); }
+        #sendBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .quick-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 6px 12px 6px 12px;
+        }
+
+        .quick-link-btn {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-link-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .server-status {
+            padding: 4px 12px;
+            background: #ffebee;
+            color: #c62828;
+            font-size: 12px;
+            display: none;
+            border-radius: 4px;
+            margin: 0 12px 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <img src="https://www.mof.go.th/wp-content/uploads/2024/12/logo.svg" alt="สปก." style="width: 20px; height: 20px;">
+            แชทบอท สปก. (MOF)
+        </div>
+
+        <div class="server-status" id="serverStatus">
+            ⚠️ เซิร์ฟเวอร์ยังไม่พร้อมใช้งาน
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+        </div>
+
+        <div class="quick-links">
+            <button class="quick-link-btn" onclick="sendMessage('กลุ่มพัฒนาระบบบริหารมีหน้าที่อะไรบ้าง')">กพร. มีหน้าที่อะไร</button>
+            <button class="quick-link-btn" onclick="sendMessage('PMQA 4.0 คืออะไร')">PMQA 4.0</button>
+            <button class="quick-link-btn" onclick="sendMessage('KPI ปี 2569 มีอะไรบ้าง')">KPI ปี 2569</button>
+            <button class="quick-link-btn" onclick="sendMessage('ติดต่อกลุ่มพัฒนาระบบบริหาร')">ติดต่อ กพร.</button>
+        </div>
+
+        <div style="display:flex; padding:12px; border-top:1px solid #e0e0e0; gap:8px;">
+            <input type="text" id="userInput" placeholder="พิมพ์ข้อความที่นี่..." autocomplete="off">
+            <button id="sendBtn" disabled>ส่ง</button>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = '/v1/chat';
+        let sessionId = 'web-gui-' + Date.now();
+        let isSending = false;
+
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const serverStatus = document.getElementById('serverStatus');
+
+        function addMessage(text, type = 'bot') {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = type === 'bot' ? 'message-bot'
+                : type === 'user' ? 'message-user'
+                : 'message-error';
+            msgDiv.textContent = text;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTyping() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>`;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTyping() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+
+        async function sendMessage(message = null) {
+            if (isSending) return;
+
+            const text = message || userInput.value.trim();
+            if (!text) return;
+
+            userInput.value = message ? text : '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            isSending = true;
+
+            addMessage(text, 'user');
+            showTyping();
+
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, session_id: sessionId })
+                });
+
+                if (!response.ok) throw new Error(`Server error: ${response.status}`);
+
+                const data = await response.json();
+                sessionId = data.session_id || sessionId;
+
+                hideTyping();
+                serverStatus.style.display = 'none';
+                addMessage(data.answer, 'bot');
+            } catch (err) {
+                hideTyping();
+                serverStatus.style.display = 'block';
+                addMessage(`ขออภัยครับ ระบบยังไม่พร้อมใช้งาน\n\nกรุณาแจ้งทีมด้านเทคนิค:\n${err.message}`, 'error');
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                isSending = false;
+                userInput.focus();
+            }
+        }
+
+        sendBtn.addEventListener('click', () => sendMessage());
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !isSending) {
+                sendMessage();
+            }
+        });
+
+        addMessage('สวัสดีครับ! ผมคือ Chatbot ผู้ช่วยของสำนักงาน สปก. (MOF) ยินดีให้บริการข้อมูลทั่วไป การติดต่อ การบริการ และการสืบค้นเอกสารครับ\n\nพิมพ์คำถามได้เลยครับ', 'bot');
+
+        window.addEventListener('load', async () => {
+            try {
+                const res = await fetch('/health', { signal: AbortSignal.timeout(3000) });
+                if (res.ok) serverStatus.style.display = 'none';
+            } catch {
+                serverStatus.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

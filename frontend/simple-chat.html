@@ -245,22 +245,6 @@
       border-radius: 20px; padding: 2px 10px; font-size: 0.7rem; color: var(--primary-dark);
     }
 
-    /* Auth banner */
-    .auth-banner {
-      display: none;
-      gap: 10px; align-items: center; padding: 8px 22px;
-      background: #fef3c7; border-bottom: 1px solid #fcd34d; color: #78350f; font-size: 0.82rem;
-      z-index: 14;
-    }
-    .auth-banner.show { display: flex; }
-    .auth-banner b { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; }
-    .auth-btn {
-      background: var(--primary); color: #fff; border: none; border-radius: 8px;
-      padding: 6px 14px; font-size: 0.8rem; font-weight: 700; font-family: inherit;
-      cursor: pointer; transition: var(--transition);
-    }
-    .auth-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
     /* Messages area */
     .messages {
       flex: 1; overflow-y: auto;
@@ -540,12 +524,7 @@
     .settings-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-muted); }
     .settings-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.88rem; font-family: inherit; background: #fbfcfd; }
     .settings-input:focus { border-color: var(--primary-light); outline: none; box-shadow: 0 0 0 3px var(--primary-glow); }
-    .input-with-toggle { position: relative; display: flex; align-items: center; }
-    .input-with-toggle .settings-input { padding-right: 40px; }
-    .token-toggle { position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 0.95rem; color: var(--text-muted); }
     .settings-hint { font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; }
-    .login-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    @media (max-width: 480px) { .login-grid { grid-template-columns: 1fr; } }
     .settings-actions { padding: 14px 20px; border-top: 1px solid var(--border-light); background: var(--surface); display: flex; gap: 10px; }
     .divider { display: flex; align-items: center; gap: 10px; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
     .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
@@ -566,7 +545,6 @@
       .quick-chip { min-width: 110px; padding: 9px 11px; }
       .quick-q { font-size: 0.82rem; }
       .settings-panel { width: 100vw; }
-      .auth-banner { padding: 8px 16px; font-size: 0.78rem; }
     }
   </style>
 </head>
@@ -618,11 +596,6 @@
             </div>
           </div>
         </header>
-
-        <div class="auth-banner" id="authBanner">
-          <b>⚠️ ระบบต้องการการยืนยันตัวตน (Access Token)</b>
-          <button class="auth-btn" id="openSettingsFromBanner">ตั้งค่าโทเค็น</button>
-        </div>
 
         <div class="messages" id="messages" role="log" aria-label="ข้อความแชท">
           <!-- ข้อความจะปรากฏตรงนี้ -->
@@ -676,33 +649,6 @@
       </div>
 
       <div class="settings-section">
-        <div class="settings-section-title">การยืนยันตัวตน</div>
-        <div class="settings-row">
-          <label class="settings-label">Access Token (Bearer)</label>
-          <div class="input-with-toggle">
-            <input type="text" id="settingsAccessToken" class="settings-input" placeholder="วาง access token ที่ได้จากการล็อกอิน">
-            <button class="token-toggle" id="toggleToken" title="แสดง/ซ่อนโทเค็น">👁️</button>
-          </div>
-        </div>
-        <div class="settings-hint">backend /api/chat/message ต้องการโทเค็น Bearer ขอรับจากผู้ดูแลระบบ หรือล็อกอินด้านล่าง</div>
-
-        <div class="divider">หรือเข้าสู่ระบบ</div>
-        <div class="login-grid">
-          <div class="settings-row">
-            <label class="settings-label">ชื่อผู้ใช้</label>
-            <input type="text" id="settingsUsername" class="settings-input" placeholder="username">
-          </div>
-          <div class="settings-row">
-            <label class="settings-label">รหัสผ่าน</label>
-            <input type="password" id="settingsPassword" class="settings-input" placeholder="password">
-          </div>
-        </div>
-        <div class="settings-row" style="margin-top:8px;">
-          <button class="btn btn-primary" id="loginBtn">เข้าสู่ระบบ</button>
-        </div>
-      </div>
-
-      <div class="settings-section">
         <div class="settings-section-title">เซสชันปัจจุบัน</div>
         <div style="display:flex; gap:8px; align-items:center;">
           <span id="currentSession" class="settings-hint" style="flex:1;">—</span>
@@ -724,12 +670,10 @@
       'use strict';
 
       const STORAGE_API = 'mof_simple_chat_api_base';
-      const STORAGE_TOKEN = 'mof_simple_chat_access_token';
       const STORAGE_CONV = 'mof_simple_chat_conversation_id';
 
       const state = {
         apiBase: localStorage.getItem(STORAGE_API) || 'http://127.0.0.1:8000',
-        accessToken: localStorage.getItem(STORAGE_TOKEN) || '',
         conversationId: localStorage.getItem(STORAGE_CONV) || null,
         isWaiting: false,
         abortCtrl: null,
@@ -752,8 +696,6 @@
         quickChips: document.getElementById('quickChips'),
         quickTabs: document.getElementById('quickTabs'),
         toast: document.getElementById('toast'),
-        authBanner: document.getElementById('authBanner'),
-        openSettingsFromBanner: document.getElementById('openSettingsFromBanner'),
         settingsBtn: document.getElementById('settingsBtn'),
         settingsBackdrop: document.getElementById('settingsBackdrop'),
         settingsPanel: document.getElementById('settingsPanel'),
@@ -761,11 +703,6 @@
         cancelSettings: document.getElementById('cancelSettings'),
         saveSettings: document.getElementById('saveSettings'),
         settingsApiBase: document.getElementById('settingsApiBase'),
-        settingsAccessToken: document.getElementById('settingsAccessToken'),
-        toggleToken: document.getElementById('toggleToken'),
-        settingsUsername: document.getElementById('settingsUsername'),
-        settingsPassword: document.getElementById('settingsPassword'),
-        loginBtn: document.getElementById('loginBtn'),
         currentSession: document.getElementById('currentSession'),
         newSessionBtn: document.getElementById('newSessionBtn'),
         newChatBtn: document.getElementById('newChatBtn'),
@@ -832,9 +769,7 @@
 
       // ---------- API headers ----------
       function authHeaders() {
-        const headers = { 'Content-Type': 'application/json' };
-        if (state.accessToken) headers['Authorization'] = 'Bearer ' + state.accessToken;
-        return headers;
+        return { 'Content-Type': 'application/json' };
       }
 
       function apiUrl(path) {
@@ -980,12 +915,7 @@
           }
 
           if (!res.ok) {
-            if (res.status === 401 || res.status === 403) {
-              showAuthBanner(true);
-              addMessage('error', 'เซิร์ฟเวอร์ปฏิเสธการเข้าถึง (401) กรุณาเปิดการตั้งค่าแล้วใส่ Access Token หรือเข้าสู่ระบบ แล้วลองส่งอีกครั้ง', { timestamp: formatTime() });
-            } else {
-              addMessage('error', `เกิดข้อผิดพลาด ${res.status}: ${data.detail || data.message || 'ไม่ทราบสาเหตุ'}`, { timestamp: formatTime() });
-            }
+            addMessage('error', `เกิดข้อผิดพลาด ${res.status}: ${data.detail || data.message || 'ไม่ทราบสาเหตุ'}`, { timestamp: formatTime() });
           } else {
             addMessage('bot', data.response || data.message || '(ไม่มีคำตอบจากระบบ)', {
               timestamp: formatTime(),
@@ -1030,7 +960,7 @@
           : quickQuestions.filter(q => q.cat === state.activeTab);
 
         els.quickChips.innerHTML = filtered.map((item) =>
-          `<button class="quick-chip" type="button" onclick="app.askQuick(${JSON.stringify(item.q)})">
+          `<button class="quick-chip" type="button" onclick="app.askQuick(${JSON.stringify(item.q).replace(/"/g, '&quot;')})">
              <div class="quick-q">${escapeHtml(item.q)}</div>
              <div class="quick-meta"><span>📖</span><span>${escapeHtml(item.source)}</span><span>•</span><span>${escapeHtml(item.cat)}</span></div>
            </button>`
@@ -1064,10 +994,6 @@
         els.currentSession.textContent = state.conversationId;
       }
 
-      function showAuthBanner(show) {
-        els.authBanner.className = show ? 'auth-banner show' : 'auth-banner';
-      }
-
       function clearConversation() {
         if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างการสนทนาทั้งหมด?')) return;
         els.messages.innerHTML = '';
@@ -1092,49 +1018,9 @@
         toast('เริ่มเซสชันใหม่แล้ว');
       }
 
-      // ---------- Login ----------
-      async function doLogin() {
-        const username = els.settingsUsername.value.trim();
-        const password = els.settingsPassword.value.trim();
-        if (!username || !password) { toast('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', 'error'); return; }
-        els.loginBtn.disabled = true;
-        const orig = els.loginBtn.textContent;
-        els.loginBtn.textContent = 'กำลังเข้าสู่ระบบ…';
-        try {
-          const res = await fetch(apiUrl('/api/auth/login'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'grant_type=password&username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password) + '&scope=&client_id=&client_secret='
-          });
-          const data = await res.json();
-          if (!res.ok) {
-            toast(data.detail || 'เข้าสู่ระบบไม่สำเร็จ', 'error');
-            return;
-          }
-          const token = data.access_token || data.token;
-          if (token) {
-            state.accessToken = token;
-            localStorage.setItem(STORAGE_TOKEN, token);
-            els.settingsAccessToken.value = token;
-            showAuthBanner(false);
-            toast('เข้าสู่ระบบสำเร็จแล้ว');
-            els.settingsUsername.value = '';
-            els.settingsPassword.value = '';
-          } else {
-            toast('เข้าสู่ระบบสำเร็จ แต่ไม่พบ access_token ในคำตอบ', 'error');
-          }
-        } catch (err) {
-          toast('ไม่สามารถเข้าสู่ระบบได้: ' + err.message, 'error');
-        } finally {
-          els.loginBtn.disabled = false;
-          els.loginBtn.textContent = orig;
-        }
-      }
-
       // ---------- Settings ----------
       function openSettings() {
         els.settingsApiBase.value = state.apiBase;
-        els.settingsAccessToken.value = state.accessToken;
         els.settingsBackdrop.classList.add('open');
         els.settingsPanel.classList.add('open');
       }
@@ -1146,16 +1032,12 @@
 
       function saveSettings() {
         const apiBase = els.settingsApiBase.value.trim();
-        const token = els.settingsAccessToken.value.trim();
         if (apiBase && !/^https?:\/\//i.test(apiBase)) {
           toast('กรุณาระบุ URL ให้ถูกต้อง เช่น http://127.0.0.1:8000', 'error');
           return;
         }
         state.apiBase = apiBase || 'http://127.0.0.1:8000';
-        state.accessToken = token;
         localStorage.setItem(STORAGE_API, state.apiBase);
-        localStorage.setItem(STORAGE_TOKEN, state.accessToken);
-        showAuthBanner(false);
         closeSettings();
         checkHealth();
         toast('บันทึกการตั้งค่าแล้ว');
@@ -1180,24 +1062,11 @@
       });
 
       els.settingsBtn.addEventListener('click', openSettings);
-      els.openSettingsFromBanner.addEventListener('click', openSettings);
       els.closeSettings.addEventListener('click', closeSettings);
       els.cancelSettings.addEventListener('click', closeSettings);
       els.saveSettings.addEventListener('click', saveSettings);
       els.newSessionBtn.addEventListener('click', newSession);
-      els.loginBtn.addEventListener('click', doLogin);
       els.newChatBtn.addEventListener('click', newSession);
-
-      els.toggleToken.addEventListener('click', () => {
-        const input = els.settingsAccessToken;
-        if (input.type === 'password') {
-          input.type = 'text';
-          els.toggleToken.textContent = '🙈';
-        } else {
-          input.type = 'password';
-          els.toggleToken.textContent = '👁️';
-        }
-      });
 
       els.settingsBackdrop.addEventListener('click', closeSettings);
       els.settingsPanel.addEventListener('click', (e) => e.stopPropagation());

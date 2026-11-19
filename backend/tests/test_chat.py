@@ -15,9 +15,12 @@ class TestCreateConversation:
         assert "session_id" in data
 
     def test_create_conversation_without_token(self, client):
-        """Creating conversation without token returns 401."""
+        """Creating conversation without token now returns 200 (auth removed)."""
         response = client.post("/api/chat/conversation")
-        assert response.status_code == 401
+        assert response.status_code == 200
+        data = response.json()
+        assert "conversation_id" in data
+        assert "session_id" in data
 
 
 class TestSendMessage:

@@ -6,9 +6,7 @@ from typing import Optional, List
 from datetime import datetime
 
 from app.db.database import get_db
-from app.models.user import User
 from app.models.conversation import Conversation, Message
-from app.api.auth import get_current_user, require_admin
 from app.core.config import settings
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -16,7 +14,6 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 @router.post("/conversation")
 async def create_conversation(
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """สร้างบทสนทนาใหม่"""
@@ -26,7 +23,7 @@ async def create_conversation(
 
     conversation = Conversation(
         session_id=session_id,
-        user_type="authenticated" if current_user else "public",
+        user_type="public",
     )
     db.add(conversation)
     db.commit()
@@ -42,7 +39,6 @@ async def create_conversation(
 async def send_message(
     message: str = Form(default=""),
     conversation_id: Optional[int] = Form(None),
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """ส่งข้อความและรับคำตอบจาก AI (RAG)"""
@@ -70,7 +66,7 @@ async def send_message(
         import uuid
         conversation = Conversation(
             session_id=str(uuid.uuid4()),
-            user_type="authenticated" if current_user else "public",
+            user_type="public",
         )
         db.add(conversation)
         db.commit()
@@ -139,7 +135,6 @@ async def send_message(
 @router.get("/conversation/{conversation_id}")
 async def get_conversation(
     conversation_id: int,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """ดึงข้อมูลบทสนทนาและข้อความทั้งหมด"""
